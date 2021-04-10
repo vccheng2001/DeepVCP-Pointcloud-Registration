@@ -6,28 +6,44 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from matplotlib import pyplot as plt
+import ModelNet40DataLoader
+
+''' note: path to dataset is ./data/modelnet40_normal_resampled
+    from https://modelnet.cs.princeton.edu/ '''
 
 def main():
+    # hyper-parameters
+    num_epochs = 50
+    batch_size = 16
+    lr = 0.001
+    num_train = len(train_dataset)
+
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"device: {device}")
 
-    # define dataset and dataloader
-    train_dataset = Dataset(mode='train')
-    test_dataset  = Dataset(mode='test')
-    train_loader  = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True, num_workers=4)
-    test_loader   = DataLoader(dataset=test_dataset, batch_size=16, shuffle=False, num_workers=4)
 
-    # hyper-parameters
-    num_epochs = 50
-    lr = 0.001
-    num_train = len(train_dataset)
+    # Load ModelNet40 data 
+    print('Loading Model40 dataset ...')
+
+    root = 'data/modelnet40_normal_resampled/'
+    category = "airplane"
+
+    train_data= ModelNet40DataLoader(root=root, category=category, split='train')
+    test_data = ModelNet40DataLoader(root=data_path, category=category, split='train')
+    train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
+
+    print('Train dataset size: ', len(train_dataset))
+    print('Test dataset size: ', len(valid_dataset))
+
     
     # Initialize the model
-    model = MLP()
+    model = MLP() # CHANGE THIS 
+    model.to(device)
 
     # Define the loss function and optimizer
-    loss_function = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss().to(device)
     
     optimizer = Adam(mlp.parameters(), lr=lr)
 
@@ -37,29 +53,25 @@ def main():
     for epoch in range(num_epochs):
         print(f"epoch #{epoch}")
 
+        running_loss = 0.0
+
         for n_batch, (in_batch, label) in enumerate(train_loader):
             # mini batch
-            in_batch, label = in_batch.to(device), label.to(device)
-            # init grads to 0
-            optim.zero_grad() 
-            model.zero_grad()     
-            
-            # FILL IN FORWARD PASS
-
-            # FILL IN LOSS 
-
+            in_batch, label = in_batch.to(device), label.to(device)        
             # zero gradient 
             optim.zero_grad()
             # backward pass
             loss.backward()
             # update parameters 
             optim.step()
-
+            
+            running_loss += loss.item()
             if (n_batch + 1) % 200 == 0:
                 print("Epoch: [{}/{}], Batch: {}, Loss: {}".format(
                     epoch, num_epochs, n_batch, loss.item()))
-
+                running_loss = 0.0
     # save 
+    print("Finished Training")
     torch.save(model.state_dict(), "model.pt")
 
     # begin test 
