@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from matplotlib import pyplot as plt
-import ModelNet40DataLoader
+import ModelNet40Dataset
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -29,8 +29,8 @@ def main():
     root = 'data/modelnet40_normal_resampled/'
     category = "airplane"
 
-    train_data= ModelNet40DataLoader(root=root, category=category, split='train')
-    test_data = ModelNet40DataLoader(root=data_path, category=category, split='train')
+    train_data= ModelNet40Dataset(root=root, category=category, split='train')
+    test_data = ModelNet40Dataset(root=data_path, category=category, split='train')
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
