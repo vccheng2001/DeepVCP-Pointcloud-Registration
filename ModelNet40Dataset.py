@@ -53,17 +53,46 @@ class ModelNet40Dataset(Dataset):
 
         # Augment by rotating x, z axes
         if self.augment:
-            theta = np.random.uniform(0, np.pi*2)
-            rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+            # generate random angles for rotation matrices 
+            theta_x = np.random.uniform(0, np.pi*2)
+            theta_y = np.random.uniform(0, np.pi*2)
+            theta_z = np.random.uniform(0, np.pi*2) 
+ 
+            Rotx = Rx(theta_x)
+            Roty = Ry(theta_y)
+            Rotz = Rz(theta_z)
             target_points = src_points.copy()
-            target_points[:,[0,2]] = target_points[:, [0, 2]].dot(rot)
 
+            # rotate about x axis
+            target_points[:,0] = target_points[:, 0].dot(Rotx)
+            # rotate about y axis 
+            target_points[:,1] = target_points[:, 1].dot(Roty)
+            # rotate about z axis
+            target_points[:,2] = target_points[:, 2].dot(Rotz)
+ 
         src_points = torch.from_numpy(src_points)
         target_points = torch.from_numpy(target_points)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points)
 
-        
+# rotation about x axis
+def Rx(theta):
+  return np.matrix([[ 1,            0           , 0     ],
+                   [ 0, math.cos(theta),-math.sin(theta)],
+                   [ 0, math.sin(theta), math.cos(theta)]])
+  
+# rotation about y axis
+def Ry(theta):
+  return np.matrix([[ math.cos(theta), 0, math.sin(theta)],
+                   [ 0           , 1,          0           ],
+                   [-math.sin(theta), 0, math.cos(theta)]])
+  
+# rotation about z axis
+def Rz(theta):
+  return np.matrix([[ math.cos(theta), -math.sin(theta), 0 ],
+                   [ math.sin(theta), math.cos(theta) , 0 ],
+                   [ 0           , 0            , 1 ]])
+                
 if __name__ == "__main__":
     root = './data/modelnet40_normal_resampled/'
     category = 'airplane/'
