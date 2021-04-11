@@ -10,7 +10,7 @@ import sys
 
 class ModelNet40Dataset(Dataset):
 
-    def __init__(self, root, category, augment=True,rotate=True):
+    def __init__(self, root, category, augment=True,rotate=True, split="train"):
         # root directory 
         self.root = root
         self.category = category 
@@ -52,7 +52,7 @@ class ModelNet40Dataset(Dataset):
         print('Source file name:', src_file)
 
         # Augment by rotating x, z axes
-        if self.augment and self.split=="train":
+        if self.augment:
             theta = np.random.uniform(0, np.pi*2)
             rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
             target_points = src_points.copy()

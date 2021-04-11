@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from matplotlib import pyplot as plt
-import ModelNet40Dataset
+from ModelNet40Dataset import ModelNet40Dataset
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -16,7 +16,6 @@ def main():
     num_epochs = 50
     batch_size = 16
     lr = 0.001
-    num_train = len(train_dataset)
 
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -30,13 +29,15 @@ def main():
     category = "airplane"
 
     train_data= ModelNet40Dataset(root=root, category=category, split='train')
-    test_data = ModelNet40Dataset(root=data_path, category=category, split='train')
+    test_data = ModelNet40Dataset(root=root, category=category, split='test')
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
-    print('Train dataset size: ', len(train_dataset))
-    print('Test dataset size: ', len(valid_dataset))
-
+    num_train = len(train_data)
+    num_test = len(test_data)
+    print('Train dataset size: ', num_train)
+    print('Test dataset size: ', num_test)
+    
     
     # Initialize the model
     model = MLP() # CHANGE THIS 
