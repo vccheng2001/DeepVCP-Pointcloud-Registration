@@ -26,7 +26,10 @@ def main():
     print('Loading Model40 dataset ...')
 
     root = 'data/modelnet40_normal_resampled/'
+    # only use airplane for now
     category = "airplane"
+    shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
+
 
     train_data= ModelNet40Dataset(root=root, category=category, split='train')
     test_data = ModelNet40Dataset(root=root, category=category, split='test')
@@ -37,7 +40,7 @@ def main():
     num_test = len(test_data)
     print('Train dataset size: ', num_train)
     print('Test dataset size: ', num_test)
-    
+
     
     # Initialize the model
     model = MLP() # CHANGE THIS 
