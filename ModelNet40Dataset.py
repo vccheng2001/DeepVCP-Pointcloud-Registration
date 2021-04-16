@@ -10,7 +10,7 @@ import sys
 
 class ModelNet40Dataset(Dataset):
 
-    def __init__(self, root, category, augment=True,rotate=True, split="train"):
+    def __init__(self, root, category, augment=True, rotate=True, split="train"):
         # root directory 
         self.root = root
         self.category = category 
@@ -59,7 +59,13 @@ class ModelNet40Dataset(Dataset):
             target_points[:,[0,2]] = target_points[:, [0, 2]].dot(rot)
 
         src_points = torch.from_numpy(src_points)
+        src_normals = torch.from_numpy(src_normals)
         target_points = torch.from_numpy(target_points)
+
+        src_points = torch.cat((src_points, src_normals), dim = 1)
+
+        src_points = src_points.permute(1, 0)
+        target_points = target_points.permute(1, 0)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points)
 
