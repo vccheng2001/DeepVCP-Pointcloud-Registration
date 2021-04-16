@@ -119,7 +119,6 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnfps=False):
         new_xyz: sampled points position data, [B, npoint, nsample, 3]
         new_points: sampled points data, [B, npoint, nsample, 3+D]
     """
-    print(points.shape)
     B, N, C = xyz.shape
     S = npoint
     fps_idx = farthest_point_sample(xyz, npoint) # [B, npoint, C]
@@ -196,7 +195,7 @@ class PointNetSetAbstraction(nn.Module):
         new_points = new_points.permute(0, 3, 2, 1) # [B, C+D, nsample,npoint]
         for i, conv in enumerate(self.mlp_convs):
             bn = self.mlp_bns[i]
-            new_points =  F.relu(bn(conv(new_points)))
+            new_points =  F.relu(bn(conv(new_points.float())))
 
         new_points = torch.max(new_points, 2)[0]
         new_xyz = new_xyz.permute(0, 2, 1)
