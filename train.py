@@ -19,19 +19,22 @@ Define loss function
     x_pred:     predicted xi
     R:          rotation matrix
     T:          translation
+    alpha:      loss weights 
 '''
-def loss_func(y_true, x_pred, R, T):
+def loss_func(y_true, x_pred, R, T, alpha):
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") # sums and divides by N
     # single optimization iteration 
     loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
-    return loss1 + loss2
+    return alpha * loss1 + (1-alpha) * loss2 
 
 def main():
     # hyper-parameters
     num_epochs = 50
     batch_size = 16
     lr = 0.001
+    # loss balancing factor 
+    alpha = 0.5
 
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -63,7 +66,7 @@ def main():
     model.to(device)
 
     # Define the loss function and optimizer
-    criterion = nn.CrossEntropyLoss().to(device)
+    loss = loss_func(y_true, x_pred, R, T, alpha)
     
     optimizer = Adam(mlp.parameters(), lr=lr)
 
