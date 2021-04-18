@@ -6,7 +6,7 @@ import csv
 import os
 import numpy as np
 import sys 
-
+from utils import * 
 
 class ModelNet40Dataset(Dataset):
 
@@ -58,40 +58,21 @@ class ModelNet40Dataset(Dataset):
             theta_y = np.random.uniform(0, np.pi*2)
             theta_z = np.random.uniform(0, np.pi*2) 
  
-            Rotx = Rx(theta_x)
-            Roty = Ry(theta_y)
-            Rotz = Rz(theta_z)
+            # Generate target point cloud by doing a series of random
+            # rotations on source point cloud 
             target_points = src_points.copy()
 
             # rotate about x axis
-            target_points[:,0] = target_points[:, 0].dot(Rotx)
+            target_points[:,0] = rotateX(theta_x, target_points[:, 0])
             # rotate about y axis 
-            target_points[:,1] = target_points[:, 1].dot(Roty)
+            target_points[:,1] = rotateY(theta_y, target_points[:, 1])
             # rotate about z axis
-            target_points[:,2] = target_points[:, 2].dot(Rotz)
+            target_points[:,2] = rotateZ(theta_z, target_points[:, 2])
  
         src_points = torch.from_numpy(src_points)
         target_points = torch.from_numpy(target_points)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points)
-
-# rotation about x axis
-def Rx(theta):
-  return np.matrix([[ 1,            0           , 0     ],
-                   [ 0, math.cos(theta),-math.sin(theta)],
-                   [ 0, math.sin(theta), math.cos(theta)]])
-  
-# rotation about y axis
-def Ry(theta):
-  return np.matrix([[ math.cos(theta), 0, math.sin(theta)],
-                   [ 0           , 1,          0           ],
-                   [-math.sin(theta), 0, math.cos(theta)]])
-  
-# rotation about z axis
-def Rz(theta):
-  return np.matrix([[ math.cos(theta), -math.sin(theta), 0 ],
-                   [ math.sin(theta), math.cos(theta) , 0 ],
-                   [ 0           , 0            , 1 ]])
                 
 if __name__ == "__main__":
     root = './data/modelnet40_normal_resampled/'
