@@ -7,9 +7,25 @@ from torch.utils.data import DataLoader
 
 from matplotlib import pyplot as plt
 from ModelNet40Dataset import ModelNet40Dataset
+from utils import *
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
+
+''' 
+Define loss function 
+@params
+    y_true:     ground truth y
+    x_pred:     predicted xi
+    R:          rotation matrix
+    T:          translation
+'''
+def loss_func(y_true, x_pred, R, T):
+    # l1 loss
+    loss1 = nn.L1Loss(reduction="mean") # sums and divides by N
+    # single optimization iteration 
+    loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
+    return loss1 + loss2
 
 def main():
     # hyper-parameters
