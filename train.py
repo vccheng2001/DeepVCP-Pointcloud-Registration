@@ -66,7 +66,7 @@ def main():
             # mini batch
             in_batch, label = in_batch.to(device), label.to(device)
             output_pts = model(in_batch)
-            print(output_pts)
+            print(output_pts.shape)
             # zero gradient 
             optim.zero_grad()
             # backward pass

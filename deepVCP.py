@@ -11,7 +11,10 @@ class DeepVCP(nn.Module):
         self.WL = weighting_layer()
     
     def forward(self, pts):
+        print(pts.shape)
         deep_feat_xyz, deep_feat_pts = self.FE1(pts)
-        keypts = self.WL(deep_feat_pts)
+        keypts_idx = self.WL(deep_feat_pts)
+        keypts = pts[:, :, keypts_idx]
 
+        keypts = keypts.permute(0, 2, 1)
         return keypts
