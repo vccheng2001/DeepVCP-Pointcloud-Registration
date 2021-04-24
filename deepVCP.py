@@ -9,6 +9,6 @@ class DeepVCP(nn.Module):
         self.FE1 = feat_extraction_layer()
     
     def forward(self, pts):
-        output_xyz, output_pts = self.FE1(pts)
+        deep_feat_xyz, deep_feat_pts = self.FE1(pts)
 
         return output_xyz, output_pts
