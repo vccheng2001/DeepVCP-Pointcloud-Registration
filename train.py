@@ -17,7 +17,7 @@ from deep_feat_extraction import feat_extraction_layer
 def main():
     # hyper-parameters
     num_epochs = 50
-    batch_size = 16
+    batch_size = 1
     lr = 0.001
 
     # check if cuda is available
@@ -65,9 +65,8 @@ def main():
         for n_batch, (in_batch, label) in enumerate(train_loader):
             # mini batch
             in_batch, label = in_batch.to(device), label.to(device)
-            output_xyz, output_pts = model(in_batch)
-            print(output_xyz.shape)
-            print(output_pts.shape)
+            output_pts = model(in_batch)
+            print(output_pts)
             # zero gradient 
             optim.zero_grad()
             # backward pass
