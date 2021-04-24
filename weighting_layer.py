@@ -27,5 +27,7 @@ class weighting_layer(nn.Module):
         X = self.fc1(X)
         X = self.fc2(X)
         X = self.fc3(X)
-    
-        return torch.topk(X, K, dim = 1).values
+
+        topk_indices = torch.topk(X, K, dim = 1).indices
+        topk_indices = topk_indices.flatten()
+        return topk_indices
