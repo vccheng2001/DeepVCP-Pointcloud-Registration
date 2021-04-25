@@ -1,4 +1,7 @@
 ''' Utility functions '''
+import itertools
+import numpy as np
+import math 
 
 # rotation about x axis
 def rotateX(theta, obj):
@@ -20,3 +23,13 @@ def rotateZ(theta, obj):
                    [ math.sin(theta), math.cos(theta) , 0 ],
                    [ 0           , 0            , 1 ]])
     return rZ.dot(obj)
+
+# cartesian product of N arrays 
+def cart_prod(arrs):
+    return list(itertools.product(*arrs))
+
+# euclidean distance between two points
+def euclidean_dist(a,b):
+    a = np.array(a)
+    b = np.array(b)
+    return np.linalg.norm(a-b)
