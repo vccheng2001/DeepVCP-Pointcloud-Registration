@@ -37,6 +37,7 @@ def voxelize(xp, r, s):
 
     output = np.array(output) # N x C 
     print(f"Output shape: {output.shape}")
+
     return output 
 
 
@@ -81,21 +82,21 @@ def voxelize_point(xp_i, search_radius, voxel_len):
                 # create voxel object at center point with edge length <voxel_len>
                 vox = Voxel([cx,cy,cz], 2*voxel_len)
                 # store voxel in dictionary
-                voxels[vox] = 1
+                voxels[(cx,cy,cz)] = 1
                 
     # measure distance from each voxel to center of search space
     # reject voxels whose distance >= search radius
     for vox in voxels.keys():
-        dist = euclidean_dist(vox.center, search_space.center)
+        dist = euclidean_dist(vox, search_space.center)
         if dist >= search_radius: 
             # print(f'Rejecting point {vox.center} which is {dist} from center')
             voxels[vox] = 0
 
     #####* * * * * this part is for visualization purposes only * * * #######
         else:
-            x.append(vox.center[0])
-            y.append(vox.center[1])
-            z.append(vox.center[2])
+            x.append(vox[0])
+            y.append(vox[1])
+            z.append(vox[2])
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
