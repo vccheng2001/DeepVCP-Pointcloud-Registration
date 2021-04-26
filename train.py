@@ -65,7 +65,7 @@ def main():
         for n_batch, (in_batch, label) in enumerate(train_loader):
             # mini batch
             in_batch, label = in_batch.to(device), label.to(device)
-            output_pts = model(in_batch)
+            output_pts = model(in_batch, None)
             print(output_pts.shape)
             # zero gradient 
             optim.zero_grad()
