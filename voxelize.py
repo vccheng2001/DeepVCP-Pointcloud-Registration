@@ -5,8 +5,10 @@ from torch import nn
 from utils import *
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
+import random
 
-# defines a voxels with a center, edge length, and vertices 
+
+# defines a voxel object with a center, edge length, and vertices 
 class Voxel():
     def __init__(self, center, length):
         self.center = center 
@@ -20,11 +22,30 @@ class Voxel():
                                   [self.cy-length/2, self.cy+length/2],
                                   [self.cz-length/2, self.cz+length/2]]))
 
-''' Voxelizing neighborhood space 
 
-    Given search radius r, divide search space into (2r/s + 1, 2r/s + 1, 2r/s + 1) voxels
+''' Calls voxelize_point on each point xp_i 
+    @param xp: transformed point cloud
+           r:  search radius, as described in paper
+           s:  voxel edge length, as described in paper 
+    @returns output: NxC output 
+'''
+def voxelize(xp, r, s):
+    output = []
+    for xp_i in xp:
+        candidates = voxelize_point(xp_i, r, s)
+        output.append(candidates)
 
-    1) create bounding box (of type Voxel) around sphere with radius r
+    output = np.array(output) # N x C 
+    print(f"Output shape: {output.shape}")
+    return output 
+
+
+''' Voxelizing neighborhood space for one point xp_i
+
+    Given search radius r, divide search space around xp_i 
+    into (2r/s + 1, 2r/s + 1, 2r/s + 1) voxels
+
+    1) create bounding box around sphere with radius r
     2) voxelize space within bounding box
     3) measure Euclidean distance of each voxel center to origin
        if voxel center falls outside of search radius, reject
@@ -32,8 +53,9 @@ class Voxel():
     @param xp_i: a transformed point in target point cloud xp
            search radius of neighborhood 
            voxel_len: edge length of each individual voxel
+    @return list of C candidates
 '''
-def voxelize(xp_i, search_radius, voxel_len):
+def voxelize_point(xp_i, search_radius, voxel_len):
     # enclose search space in bounding box (think of it as a voxel of edge length 2r)
     search_space = Voxel(xp_i, 2*search_radius)     
     ss_vertices = search_space.vertices
@@ -43,8 +65,9 @@ def voxelize(xp_i, search_radius, voxel_len):
     ss_maxx, ss_maxy, ss_maxz = np.max(ss_vertices, axis=0)
 
     # number of voxels along each axes
+
     num_voxels = np.ceil((np.max(ss_vertices, axis=0) - np.min(ss_vertices, axis=0))/voxel_len)
-    print(f"voxelize into {num_voxels} voxels along each axis ")
+    # print(f"voxelize into {num_voxels} voxels along each axis ")
     # store voxels in sparse representation 
     voxels = {} 
     x,y,z = [], [], []
@@ -55,43 +78,55 @@ def voxelize(xp_i, search_radius, voxel_len):
             for zi in np.arange(ss_minz,ss_maxz,voxel_len):
                 # define center of voxel
                 cx,cy,cz = (xi+voxel_len/2, yi+voxel_len/2, zi+voxel_len/2)
-                # create voxel object at center point with radius <voxel_len>
+                # create voxel object at center point with edge length <voxel_len>
                 vox = Voxel([cx,cy,cz], 2*voxel_len)
                 # store voxel in dictionary
                 voxels[vox] = 1
                 
-                # for graphing purposes only
-                x.append(cx)
-                y.append(cy)
-                z.append(cz)
-
-
-    # plot voxel centers
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=1)
-
-    # plot bounding box vertices
-    ax.scatter(ss_vertices[:,0], ss_vertices[:,1], ss_vertices[:,2], cmap='Greens', linewidth=1);
-    plt.show()
-
     # measure distance from each voxel to center of search space
     # reject voxels whose distance >= search radius
-    print(f'Search radius: {search_radius}\n')
     for vox in voxels.keys():
         dist = euclidean_dist(vox.center, search_space.center)
-        if dist > search_radius: 
-            print(f'Rejecting point {vox.center} which is {dist} from center')
-            voxels[vox] = 0 
+        if dist >= search_radius: 
+            # print(f'Rejecting point {vox.center} which is {dist} from center')
+            voxels[vox] = 0
 
-    voxels = {v for v in voxels.items() if v[1] != 1}
-    return voxels
+    #####* * * * * this part is for visualization purposes only * * * #######
+        else:
+            x.append(vox.center[0])
+            y.append(vox.center[1])
+            z.append(vox.center[2])
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    # plot voxel centroids that are within search radius
+    ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=1)
+    # plot bounding box vertices
+    ax.scatter(ss_vertices[:,0], ss_vertices[:,1], ss_vertices[:,2], cmap='Greens', linewidth=1);
+    plt.plot(search_space.center[0], search_space.center[1], search_space.center[2],'ro') #
+    plt.show()
+    ########################################################################
+
+    candidates = {k:v for (k,v) in voxels.items() if v != 0}
+    candidates = np.array(list(candidates.keys()))
+    return candidates
 
 
 if __name__ == "__main__":
-    # ** Using placeholder numbers for nwo
+    
+    # setup parameters 
+    
+    N = 64  # number of point
+    r = 2.0 # search radius, as described in paper
+    s = 0.4 # voxel edge length, as described in paper 
 
-    r = 9   # search radius
-    s = 2.5 # voxel size
-    xp_i = [1,0.2,3] # ith point in transformed point cloud
-    voxelize(xp_i, r, s)
+    # Generate N random points 
+    xrange = (-10.0, 10.0)
+    yrange = (-10.0, 10.0)
+    zrange = (-10.0, 10.0)
+    xp = []
+    [xp.append((random.uniform(*xrange), random.uniform(*yrange),\
+         random.uniform(*zrange))) for i in range(N) ]
+
+    voxelize(xp, r, s)
+
