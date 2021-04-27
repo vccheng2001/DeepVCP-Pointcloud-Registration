@@ -6,7 +6,7 @@ import csv
 import os
 import numpy as np
 import sys 
-
+from utils import * 
 
 class ModelNet40Dataset(Dataset):
 
@@ -53,11 +53,22 @@ class ModelNet40Dataset(Dataset):
 
         # Augment by rotating x, z axes
         if self.augment:
-            theta = np.random.uniform(0, np.pi*2)
-            rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+            # generate random angles for rotation matrices 
+            theta_x = np.random.uniform(0, np.pi*2)
+            theta_y = np.random.uniform(0, np.pi*2)
+            theta_z = np.random.uniform(0, np.pi*2) 
+ 
+            # Generate target point cloud by doing a series of random
+            # rotations on source point cloud 
             target_points = src_points.copy()
-            target_points[:,[0,2]] = target_points[:, [0, 2]].dot(rot)
 
+            # rotate about x axis
+            target_points[:,0] = rotateX(theta_x, target_points[:, 0])
+            # rotate about y axis 
+            target_points[:,1] = rotateY(theta_y, target_points[:, 1])
+            # rotate about z axis
+            target_points[:,2] = rotateZ(theta_z, target_points[:, 2])
+ 
         src_points = torch.from_numpy(src_points)
         src_normals = torch.from_numpy(src_normals)
         target_points = torch.from_numpy(target_points)
@@ -68,8 +79,7 @@ class ModelNet40Dataset(Dataset):
         target_points = target_points.permute(1, 0)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points)
-
-        
+                
 if __name__ == "__main__":
     root = './data/modelnet40_normal_resampled/'
     category = 'airplane/'
