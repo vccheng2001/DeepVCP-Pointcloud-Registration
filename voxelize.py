@@ -98,14 +98,14 @@ def voxelize_point(xp_i, search_radius, voxel_len):
             y.append(vox[1])
             z.append(vox[2])
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    # plot voxel centroids that are within search radius
-    ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=1)
-    # plot bounding box vertices
-    ax.scatter(ss_vertices[:,0], ss_vertices[:,1], ss_vertices[:,2], cmap='Greens', linewidth=1);
-    plt.plot(search_space.center[0], search_space.center[1], search_space.center[2],'ro') #
-    plt.show()
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # # plot voxel centroids that are within search radius
+    # ax.scatter(x, y, z, c=z, cmap='viridis', linewidth=1)
+    # # plot bounding box vertices
+    # ax.scatter(ss_vertices[:,0], ss_vertices[:,1], ss_vertices[:,2], cmap='Greens', linewidth=1);
+    # # plt.plot(search_space.center[0], search_space.center[1], search_space.center[2],'ro') #
+    # plt.show()
     ########################################################################
 
     candidates = {k:v for (k,v) in voxels.items() if v != 0}
