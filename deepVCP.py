@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from knn_cuda import KNN, knn
+from point_utils import knn_operation
 
 from pointnet2_utils import sample_and_group
 from deep_feat_extraction import feat_extraction_layer
 from weighting_layer import weighting_layer
+from voxelize import voxelize
 
 class DeepVCP(nn.Module):
     def __init__(self): 
@@ -31,10 +32,9 @@ class DeepVCP(nn.Module):
         # reshape the candidate_pts from B * N * C * 3 to (N * B) * C * 3 to perform knn
         candidate_pts_flat = torch.flatten(candidate_pts, start_dim = 0, end_dim = 1)
         k_nn = 32
-        knn = KNN(k = k_nn, transpose_mode = True)
         query_pts = candidate_pts
         ref_pts = tgt_pts.repeat(B, 1, 1)
-        dist, indx = knn(ref_pts, query_pts)
+        dist, indx = knn(ref_pts, query_pts, k_nn)
         # normalize the deep features with the knn distance
         dist_sum = torch.sum(dist, dim = 2, keepdim = True, dtype = float)
         dist_normalize = dist / dist_sum
