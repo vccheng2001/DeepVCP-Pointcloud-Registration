@@ -54,9 +54,11 @@ class ModelNet40Dataset(Dataset):
         # Augment by rotating x, z axes
         if self.augment:
             theta = np.random.uniform(0, np.pi*2)
-            rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-            target_points = src_points.copy()
-            target_points[:,[0,2]] = target_points[:, [0, 2]].dot(rot)
+            R = np.array([[np.cos(theta), -np.sin(theta),0], 
+                          [np.sin(theta), np.cos(theta),0],
+                          [0,                0,         1]])
+            # rotation 
+            target_points = src_points.copy().dot(R)
 
         src_points = torch.from_numpy(src_points)
         src_normals = torch.from_numpy(src_normals)
@@ -67,7 +69,7 @@ class ModelNet40Dataset(Dataset):
         src_points = src_points.permute(1, 0)
         target_points = target_points.permute(1, 0)
         # return source point cloud and transformed (target) point cloud 
-        return (src_points, target_points)
+        return (src_points, target_points, R)
 
         
 if __name__ == "__main__":
@@ -77,8 +79,8 @@ if __name__ == "__main__":
     index=0
     data = ModelNet40Dataset(root=root,category=category,augment=True)
     DataLoader = torch.utils.data.DataLoader(data, batch_size=16, shuffle=False)
-    for src, target in DataLoader:
-        print('Source:', src, src.shape)
-        print('Target:', target, target.shape)
-
+    for src, target, R in DataLoader:
+        print('Source:',  src.shape)
+        print('Target:',  target.shape)
+        print('R', R.shape)
         
