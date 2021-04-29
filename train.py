@@ -1,3 +1,4 @@
+from deepVCP import DeepVCP
 import os
 import numpy as np
 import torch
@@ -8,6 +9,8 @@ from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
 from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
+
+from deep_feat_extraction import feat_extraction_layer
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -31,7 +34,7 @@ def loss_func(y_true, x_pred, R, T, alpha):
 def main():
     # hyper-parameters
     num_epochs = 50
-    batch_size = 16
+    batch_size = 1
     lr = 0.001
     # loss balancing factor 
     alpha = 0.5
@@ -62,13 +65,13 @@ def main():
 
     
     # Initialize the model
-    model = MLP() # CHANGE THIS 
+    model = DeepVCP() # CHANGE THIS 
     model.to(device)
 
     # Define the loss function and optimizer
     loss = loss_func(y_true, x_pred, R, T, alpha)
     
-    optimizer = Adam(mlp.parameters(), lr=lr)
+    optimizer = Adam(model.parameters(), lr=lr)
 
     # begin train 
     model.train()
@@ -80,7 +83,9 @@ def main():
 
         for n_batch, (in_batch, label) in enumerate(train_loader):
             # mini batch
-            in_batch, label = in_batch.to(device), label.to(device)        
+            in_batch, label = in_batch.to(device), label.to(device)
+            output_pts = model(in_batch)
+            print(output_pts.shape)
             # zero gradient 
             optim.zero_grad()
             # backward pass
