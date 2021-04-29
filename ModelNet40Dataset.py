@@ -6,6 +6,7 @@ import csv
 import os
 import numpy as np
 import sys 
+from utils import *
 
 
 class ModelNet40Dataset(Dataset):
@@ -41,33 +42,39 @@ class ModelNet40Dataset(Dataset):
         print("# Total clouds", len(self.points))
 
 
-
     def __len__(self):
         return len(self.points)
 
     def __getitem__(self, index):
         # source pointcloud
-        src_points, src_normals, src_file =  self.points[index], self.normals[index], self.labels[index]
+        src_points, src_normals, src_file =  self.points[index].T, self.normals[index].T, self.labels[index]
         
         print('Source file name:', src_file)
-
+        print('pts', src_points.shape)
+        print('norm', src_normals.shape)
         # Augment by rotating x, z axes
         if self.augment:
-            theta = np.random.uniform(0, np.pi*2)
-            R = np.array([[np.cos(theta), -np.sin(theta),0], 
-                          [np.sin(theta), np.cos(theta),0],
-                          [0,                0,         1]])
-            # rotation 
-            target_points = src_points.copy().dot(R)
+            # generate random angles for rotation matrices 
+            theta_x = np.random.uniform(0, np.pi*2)
+            theta_y = np.random.uniform(0, np.pi*2)
+            theta_z = np.random.uniform(0, np.pi*2) 
+ 
+            # Generate target point cloud by doing a series of random
+            # rotations on source point cloud 
+            Rx = RotX(theta_x)
+            Ry = RotY(theta_y)
+            Rz = RotZ(theta_z)
+            R = Rx @ Ry @ Rz
+
+            # rotate source point cloud 
+            target_points = R @ src_points
 
         src_points = torch.from_numpy(src_points)
         src_normals = torch.from_numpy(src_normals)
         target_points = torch.from_numpy(target_points)
+        R = torch.from_numpy(R)
 
-        src_points = torch.cat((src_points, src_normals), dim = 1)
-
-        src_points = src_points.permute(1, 0)
-        target_points = target_points.permute(1, 0)
+        src_points = torch.cat((src_points, src_normals), dim = 0)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points, R)
 
