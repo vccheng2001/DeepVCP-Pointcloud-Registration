@@ -31,6 +31,13 @@ def loss_func(y_true, x_pred, R, T, alpha):
     loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
     return alpha * loss1 + (1-alpha) * loss2 
 
+# singular value decomposition step to estimate
+# relative transformation given corresponding keypoint pairs {xi, yi}
+def svd():
+    pass
+
+
+
 def main():
     # hyper-parameters
     num_epochs = 50
@@ -68,9 +75,7 @@ def main():
     model = DeepVCP() # CHANGE THIS 
     model.to(device)
 
-    # Define the loss function and optimizer
-    loss = loss_func(y_true, x_pred, R, T, alpha)
-    
+    # Define the optimizer
     optimizer = Adam(model.parameters(), lr=lr)
 
     # begin train 
@@ -81,13 +86,18 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (in_batch, label) in enumerate(train_loader):
+        for n_batch, (src, target, R) in enumerate(train_loader):
             # mini batch
-            in_batch, label = in_batch.to(device), label.to(device)
-            output_pts = model(in_batch)
-            print(output_pts.shape)
+            src, target, R = src.to(device), target.to(device), R.to(device)
+            print('Source:',  src.shape)
+            print('Target:',  target.shape)
+            print('R', R.shape)
+            
+            pred = model(src)
+            print('output of model shape', pred.shape)
             # zero gradient 
             optim.zero_grad()
+            loss = loss_func(y_true, x_pred, R, T, alpha)
             # backward pass
             loss.backward()
             # update parameters 
