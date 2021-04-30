@@ -86,11 +86,10 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (src, target, R) in enumerate(train_loader):
+        for n_batch, (in_batch, label) in enumerate(train_loader):
             # mini batch
             in_batch, label = in_batch.to(device), label.to(device)
-            output_pts = model(in_batch, None)
-            print(output_pts.shape)
+            output_pts = model(in_batch, in_batch)
             # zero gradient 
             optim.zero_grad()
             loss = loss_func(y_true, x_pred, R, T, alpha)
