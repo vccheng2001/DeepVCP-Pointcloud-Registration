@@ -69,7 +69,7 @@ def main():
     model.to(device)
 
     # Define the loss function and optimizer
-    loss = loss_func()
+    # loss = loss_func()
     
     optimizer = Adam(model.parameters(), lr=lr)
 
