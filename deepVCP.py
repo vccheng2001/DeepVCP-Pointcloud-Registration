@@ -53,7 +53,6 @@ class DeepVCP(nn.Module):
         # stacking normalized distance into a map for deep features
         # feat_weight_map: (B, N * C, K, C_deep_feat) C_deep_feat is number of channels for deep features 
         feat_weight_map = dist_normalize.unsqueeze(3).repeat(1, 1, 1, k_nn)
-        print("feat_weight_map: ", feat_weight_map.shape)
 
         # pick deep features of tgt_pts with idx
         N_keypts = src_keypts.shape[1]
@@ -72,7 +71,8 @@ class DeepVCP(nn.Module):
 
         # normalize the picked deep features from tgt_pts
         tgt_feat_norm = tgt_feat_picked * feat_weight_map
-        
+        tgt_feat_cat = torch.cat((candidate_pts, tgt_feat_norm), dim = 3)
+        print(tgt_feat_cat.shape)
 
         # obtain the top k indices for tgt point clouds
         tgt_keypts_idx = self.WL(tgt_deep_feat_pts)
