@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from point_utils import knn_operation
+from knn_cuda import KNN
 
 from pointnet2_utils import sample_and_group
 from deep_feat_extraction import feat_extraction_layer
@@ -25,19 +25,24 @@ class DeepVCP(nn.Module):
         # group the keypoints
         src_keypts_grouped_xyz, src_keypts_grouped_pts = sample_and_group(npoint = 64, radius = 1, nsample = 32, xyz = src_keypts[:, :, :3], points = src_keypts[:, :, 3:])
         
-        # extract features from tgt_pts
+        
         tgt_deep_feat_xyz, tgt_deep_feat_pts = self.FE1(tgt_pts)
         # get candidate points for corresponding points of the keypts in src
         candidate_pts = voxelize(src_keypts)
-        # reshape the candidate_pts from B * N * C * 3 to (N * B) * C * 3 to perform knn
-        candidate_pts_flat = torch.flatten(candidate_pts, start_dim = 0, end_dim = 1)
+        # reshape the candidate_pts from B * N * C * 3 to B * (N * C) * 3 to perform knn
+        candidate_pts_flat = torch.flatten(candidate_pts, start_dim = 1, end_dim = 2)
+        
+        # use KNN to find nearest neighbors of the candidates in tgt_pts 
         k_nn = 32
+        knn = KNN(k = 10, transpose_mode = True)
         query_pts = candidate_pts
         ref_pts = tgt_pts.repeat(B, 1, 1)
-        dist, indx = knn(ref_pts, query_pts, k_nn)
-        # normalize the deep features with the knn distance
+        dist, indx = knn(ref_pts.cuda(), query_pts.cuda())
+
+        # normalize the deep features based on distance
         dist_sum = torch.sum(dist, dim = 2, keepdim = True, dtype = float)
         dist_normalize = dist / dist_sum
+        print(dist_normalize.shape)
         feat_weight_map = (dist_normalize.repeat(1, 1, k_nn)).repeat(B, 1, 1, 1)
         
 
