@@ -31,12 +31,31 @@ def loss_func(y_true, x_pred, R, T, alpha):
     loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
     return alpha * loss1 + (1-alpha) * loss2 
 
-# singular value decomposition step to estimate
-# relative transformation given corresponding keypoint pairs {xi, yi}
-def svd():
-    pass
+''' 
+singular value decomposition step to estimate
+rotation R given corresponding keypoint pairs {xi, yi}
 
+@param  x: Nx3 source points 
+        y: Nx3 transformed source points
+@return R: calculated rotation matrix 
 
+svd(E) = [U,S,V] 
+E = USV^T
+'''
+def get_transformation(x, y):
+    x = x.numpy()
+    y = y.numpy()
+    centroid_x = np.mean(x, axis=1).reshape(-1,1)
+    centroid_y = np.mean(y, axis=1).reshape(-1,1)
+
+    H = (x - centroid_x) @ (y - centroid_y).T
+    U, S, V = np.linalg.svd(H)
+
+    R = Vt.T @ U.T
+    R = torch.from_numpy(R)
+    t = -R @ centroid_x + centroid_y
+    return R, t
+    
 
 def main():
     # hyper-parameters
@@ -92,7 +111,7 @@ def main():
             print('Source:',  src.shape)
             print('Target:',  target.shape)
             print('R', R.shape)
-            
+
             pred = model(src)
             print('output of model shape', pred.shape)
             # zero gradient 
@@ -126,4 +145,15 @@ def main():
     print("Test L2 error:", l2_err)
 
 if __name__ == "__main__":
-    main()
+    A = torch.tensor([[1,0,0], [0,1,0.], [0,0,3.]], dtype=torch.float)
+    R0 = torch.tensor([[np.cos(90), -np.sin(90),0], [np.sin(90), np.cos(90),0],[0,0,1]], dtype=torch.float)
+    B = (R0.mm(A.T)).T
+    t0 = torch.tensor([3., 3.,4])
+    print('R0,t0', R0, t0 )
+
+    B += t0
+    R, t =get_transformation(A,B)
+    print('got R,t', R, t )
+    A_aligned = (R.mm(A.T)).T + t
+    rmsd = torch.sqrt(((A_aligned - B)**2).sum(axis=1).mean())
+    
