@@ -1,68 +1,68 @@
 import os
-import numpy as np
 import torch
 from torch import nn
 from utils import *
-from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import random
 import time
 
-
-''' Calls voxelize_point on each point xp_i 
-    @param xp: transformed point cloud
+''' Calls voxelize_point on each point
+    @param xp: batch of transformed point clouds 
            r:  search radius, as described in paper
            s:  voxel edge length, as described in paper 
-    @returns output: NxCx3 
+    @returns output: BxNxCx3 
 '''
-def voxelize(xp, r, s):
-    output = []
-    for xp_i in xp:
-        candidates = voxelize_point(xp_i, r, s)
-        output.append(candidates)
+# input: B x N x 3 
+# output:B x N x C x 3
+def voxelize(point_clouds, r, s):
+    out = []
+    B,N,_= point_clouds.shape
+    # flatten into BxN 3-element tensors
+    points = point_clouds.view(-1, 3)  
+    for point in points:
+        out.append(voxelize_point(point, r, s))
+    # reshape into B x N x C x 3
+    out = torch.stack((out))
+    out = torch.reshape(out, (B, N, -1, 3))
+    return out
 
-    output = np.array(output)#,dtype=object) # N x C 
-    print(f"Output shape: {output.shape}")
-    return output 
 
+''' Voxelizing neighborhood space for one point (shape: [3])
 
-''' Voxelizing neighborhood space for one point xp_i
-
-    Given search radius r and voxel length, voxelize search space around xp_i 
+    Given search radius r and voxel length, voxelize search space around point 
     1) create bounding box around sphere with radius r
     2) voxelize space within bounding box
     3) reject any point that falls outside of the sphere
 
-    @param xp_i: a transformed point in target point cloud xp
+    @param point: a transformed point in target point cloud xp
            search radius of neighborhood 
            voxel_len: edge length of each individual voxel
     @return list of C candidates
 '''
-def voxelize_point(xp_i, search_radius, voxel_len):
+def voxelize_point(point, search_radius, voxel_len):
     # coordinate of point
-    bbox_center = xp_i
+    bbox_center = point
     cx, cy, cz = bbox_center
 
     # enclose search space in bounding box
-    bbox_vertices = np.asarray(cart_prod([[cx-search_radius, cx+search_radius],
+    bbox_vertices = torch.from_numpy(cart_prod([[cx-search_radius, cx+search_radius],
                                         [cy-search_radius, cy+search_radius],
                                         [cz-search_radius, cz+search_radius]]))
 
     # min, max xyz coords of bounding box
-    search_min = np.min(bbox_vertices, axis=0)
-    search_max = np.max(bbox_vertices, axis=0)    
+    search_min = torch.min(bbox_vertices, axis=0)
+    search_max = torch.max(bbox_vertices, axis=0)    
 
     # list of candidates 
     candidates = []
-
     # create 3D grid for each of x,y,z
-    xrange = np.arange(search_min[0], search_max[0], voxel_len)
-    yrange = np.arange(search_min[1], search_max[1], voxel_len)
-    zrange = np.arange(search_min[2], search_max[2], voxel_len)
+    xrange = torch.arange(search_min.values[0], search_max.values[0], voxel_len)
+    yrange = torch.arange(search_min.values[1], search_max.values[1], voxel_len)
+    zrange = torch.arange(search_min.values[2], search_max.values[2], voxel_len)
 
     # create 3d mesh grid 
-    xgrid, ygrid, zgrid=  np.meshgrid(xrange, yrange, zrange)
-    grid3D = np.stack((xgrid, ygrid, zgrid), axis=-1)   
+    xgrid, ygrid, zgrid = torch.meshgrid(xrange, yrange, zrange)
+    grid3D = torch.stack((xgrid, ygrid, zgrid), axis=-1)   
 
     # reject points that lie outside of sphere (radius > search radius)
     for coord in grid3D.reshape(-1, grid3D.shape[-1]):
@@ -70,9 +70,10 @@ def voxelize_point(xp_i, search_radius, voxel_len):
         if dist <= search_radius: 
             candidates.append(coord)
     
-    candidates = np.array(candidates)
+    candidates = torch.stack((candidates))
+
     # visualize points 
-    visualize_voxelization(bbox_centerbox_vertices,candidates) 
+    # visualize_voxelization(bbox_center, bbox_vertices,candidates) 
     return candidates
 
 
@@ -94,19 +95,14 @@ def visualize_voxelization(bbox_center, bbox_vertices, candidates):
 
 if __name__ == "__main__":
     # setup parameters 
-    start = time.process_time()
-
-    N = 64  # number of point
+    b = 10 # batch size
+    n = 64  # number of points
     r = 2.0 # search radius, as described in paper
     s = 0.4 # voxel edge length, as described in paper 
 
-    # Generate N random points 
-    xrange = (-15.0, 15.0)
-    yrange = (-15.0, 15.0)
-    zrange = (-15.0, 15.0)
-    xp = []
-    [xp.append((random.uniform(*xrange), random.uniform(*yrange),\
-         random.uniform(*zrange))) for i in range(N) ]
+    maxval = 10
+    minval = -10
 
-    voxelize(xp, r, s)
-
+    point_clouds = (maxval-minval)*torch.rand((b,n, 3)) + minval
+    out = voxelize(point_clouds, r, s)
+    print(out.shape)
