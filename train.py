@@ -11,6 +11,7 @@ from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
 from deep_feat_extraction import feat_extraction_layer
+import json
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -18,18 +19,24 @@ from deep_feat_extraction import feat_extraction_layer
 ''' 
 Define loss function 
 @params
-    y_true:     ground truth y
-    x_pred:     predicted xi
-    R:          rotation matrix
-    T:          translation
+    
+    x:          source keypoints
+    y:          transformed keypoints
     alpha:      loss weights 
 '''
-def loss_func(y_true, x_pred, R, T, alpha):
+def deepVCP_loss(x, y, alpha)
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") # sums and divides by N
-    # single optimization iteration 
-    loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
-    return alpha * loss1 + (1-alpha) * loss2 
+    # first svd step to estimate transformation
+    R0, t0 = SVD(x, y)
+    # outlier rejection: 20% 
+    y_pred = R0.dot(x) + t0
+    
+
+    # second svd step to refine transformation 
+    R1, t1 = SVD(x, y)
+    loss2 = np.mean(abs(y - (R1.dot(x) + t1)))
+    return alpha * loss1(x,y) + (1-alpha) * loss2 
 
 ''' 
 singular value decomposition step to estimate
@@ -42,7 +49,7 @@ rotation R given corresponding keypoint pairs {xi, yi}
 svd(E) = [U,S,V] 
 E = USV^T
 '''
-def get_transformation(x, y):
+def SVD(x, y):
     x = x.numpy()
     y = y.numpy()
     centroid_x = np.mean(x, axis=1).reshape(-1,1)
@@ -116,7 +123,7 @@ def main():
             print('output of model shape', pred.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = loss_func(y_true, x_pred, R, T, alpha)
+            loss = deepVCP_loss(x, y, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
