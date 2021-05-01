@@ -22,12 +22,13 @@ class DeepVCP(nn.Module):
         src_keypts = src_pts[:, :, src_keypts_idx]
         src_keypts = src_keypts.permute(0, 2, 1)
         # group the keypoints
-        src_keypts_grouped_xyz, src_keypts_grouped_pts = sample_and_group(npoint = 64, radius = 1, nsample = 32, xyz = src_keypts[:, :, :3], points = src_keypts[:, :, 3:])
+        src_keypts_grouped_xyz, src_keypts_grouped_pts = sample_and_group(npoint = 64, radius = 1, nsample = 32, \
+                                                                          xyz = src_keypts[:, :, :3], \
+                                                                          points = src_keypts[:, :, 3:])
         
         tgt_pts_xyz = tgt_pts[:, :3, :]
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
         tgt_deep_feat_xyz, tgt_deep_feat_pts = self.FE1(tgt_pts)
-        print("tgt_deep_feat_pts: ", tgt_deep_feat_pts.shape)
         # get candidate points for corresponding points of the keypts in src
         r = 2.0
         s = 0.4
@@ -36,6 +37,15 @@ class DeepVCP(nn.Module):
         ###########################
         # candidate_pts = voxelize(src_keypts, r, s)
         candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3)
+        candidate_pts_reshape = candidate_pts.view(B, candidate_pts.shape[1] * candidate_pts.shape[2], \
+                                                   candidate_pts.shape[3])
+        candidate_pts_grouped_xyz, candidate_pts_grouped_pts = sample_and_group(npoint = candidate_pts_reshape.shape[1], \
+                                                                                radius = 1, nsample = 32, \
+                                                                                xyz = candidate_pts_reshape, points = candidate_pts_reshape)
+        candidate_pts_grouped_xyz = candidate_pts_grouped_pts[:, :, :, :3]
+        candidate_pts_grouped_xyz = candidate_pts_grouped_xyz.view(B, candidate_pts.shape[1], candidate_pts.shape[2], 32, \
+                                                                   candidate_pts.shape[3])
+        print("candidate_pts_grouped_xyz: ", candidate_pts_grouped_xyz.shape)
         # reshape the candidate_pts from (B, N, C, 3) to (B, (N * C), 3) to perform knn
         candidate_pts_flat = torch.flatten(candidate_pts, start_dim = 1, end_dim = 2)
         
@@ -71,8 +81,7 @@ class DeepVCP(nn.Module):
 
         # normalize the picked deep features from tgt_pts
         tgt_feat_norm = tgt_feat_picked * feat_weight_map
-        tgt_feat_cat = torch.cat((candidate_pts, tgt_feat_norm), dim = 3)
-        print(tgt_feat_cat.shape)
+        tgt_feat_cat = torch.cat((candidate_pts_grouped_xyz.cuda(), tgt_feat_norm), dim = 4)
 
         # obtain the top k indices for tgt point clouds
         tgt_keypts_idx = self.WL(tgt_deep_feat_pts)
