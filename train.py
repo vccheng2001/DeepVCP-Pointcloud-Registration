@@ -10,59 +10,13 @@ from matplotlib import pyplot as plt
 from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
+from deepVCP_loss import deepVCP_loss
 from deep_feat_extraction import feat_extraction_layer
-import json
+import pcl
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
 
-''' 
-Define loss function 
-@params
-    
-    x:          source keypoints
-    y:          transformed keypoints
-    alpha:      loss weights 
-'''
-def deepVCP_loss(x, y, alpha)
-    # l1 loss
-    loss1 = nn.L1Loss(reduction="mean") # sums and divides by N
-    # first svd step to estimate transformation
-    R0, t0 = SVD(x, y)
-    # outlier rejection: 20% 
-    y_pred = R0.dot(x) + t0
-    
-
-    # second svd step to refine transformation 
-    R1, t1 = SVD(x, y)
-    loss2 = np.mean(abs(y - (R1.dot(x) + t1)))
-    return alpha * loss1(x,y) + (1-alpha) * loss2 
-
-''' 
-singular value decomposition step to estimate
-rotation R given corresponding keypoint pairs {xi, yi}
-
-@param  x: Nx3 source points 
-        y: Nx3 transformed source points
-@return R: calculated rotation matrix 
-
-svd(E) = [U,S,V] 
-E = USV^T
-'''
-def SVD(x, y):
-    x = x.numpy()
-    y = y.numpy()
-    centroid_x = np.mean(x, axis=1).reshape(-1,1)
-    centroid_y = np.mean(y, axis=1).reshape(-1,1)
-
-    H = (x - centroid_x) @ (y - centroid_y).T
-    U, S, V = np.linalg.svd(H)
-
-    R = Vt.T @ U.T
-    R = torch.from_numpy(R)
-    t = -R @ centroid_x + centroid_y
-    return R, t
-    
 
 def main():
     # hyper-parameters
@@ -115,15 +69,18 @@ def main():
         for n_batch, (src, target, R) in enumerate(train_loader):
             # mini batch
             src, target, R = src.to(device), target.to(device), R.to(device)
+            # no translation for now
+            t_true = torch.zeros(B,N,3).to(device)
+            # ground turth y
+            y_true = torch.matmul(x,R_true) + t_true  
             print('Source:',  src.shape)
             print('Target:',  target.shape)
             print('R', R.shape)
-
-            pred = model(src)
+            y_pred = model(src)
             print('output of model shape', pred.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(x, y, alpha=0.5)
+            loss = deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
@@ -152,15 +109,16 @@ def main():
     print("Test L2 error:", l2_err)
 
 if __name__ == "__main__":
-    A = torch.tensor([[1,0,0], [0,1,0.], [0,0,3.]], dtype=torch.float)
-    R0 = torch.tensor([[np.cos(90), -np.sin(90),0], [np.sin(90), np.cos(90),0],[0,0,1]], dtype=torch.float)
-    B = (R0.mm(A.T)).T
-    t0 = torch.tensor([3., 3.,4])
-    print('R0,t0', R0, t0 )
+    pcl()
+    # A = torch.tensor([[1,0,0], [0,1,0.], [0,0,3.]], dtype=torch.float)
+    # R0 = torch.tensor([[np.cos(90), -np.sin(90),0], [np.sin(90), np.cos(90),0],[0,0,1]], dtype=torch.float)
+    # B = (R0.mm(A.T)).T
+    # t0 = torch.tensor([3., 3.,4])
+    # print('R0,t0', R0, t0 )
 
-    B += t0
-    R, t =get_transformation(A,B)
-    print('got R,t', R, t )
-    A_aligned = (R.mm(A.T)).T + t
-    rmsd = torch.sqrt(((A_aligned - B)**2).sum(axis=1).mean())
+    # B += t0
+    # R, t =get_transformation(A,B)
+    # print('got R,t', R, t )
+    # A_aligned = (R.mm(A.T)).T + t
+    # rmsd = torch.sqrt(((A_aligned - B)**2).sum(axis=1).mean())
     
