@@ -3,6 +3,12 @@ import torch
 from torch import nn
 from knn_cuda import KNN
 
+'''
+obtain rotation and translation using single
+value decomposition
+@param x: keypoints of source point cloud 
+       y: corresponding transformed points 
+'''
 def get_rigid_transform(x, y):
     print("Getting rigid transform...")
     print('x:', x.shape) # B x 3 x N 
@@ -123,11 +129,7 @@ print('x',x)
 # output predicted points from previous layers of deepVCP
 y_pred = torch.randn(B,3,N).to(device)
 
-# ground truth rotation: Bx3x3, ground truth translation: Bx1x3
-# R_true = torch.Tensor([[[  0.9330127, -0.2500000,  0.2588190],
-#    [0.3147048,  0.9156751, -0.2500000],
-#   [-0.1744942,  0.3147048,  0.9330127 ]]])
-
+# 30 degree rotation 
 R_true = torch.Tensor([[[  0.7500000, -0.4330127,  0.5000000],
    [0.6495190,  0.6250000, -0.4330127],
   [-0.1250000,  0.6495190,  0.7500000 ]]])
@@ -137,7 +139,6 @@ t_true = torch.zeros(B,3,1).repeat(1,1,N).to(device)
 
 print("Ground truth R:", R_true)
 print("Ground truth t:", t_true)
-
 
 # ground truth y: (Bx3x3)@(Bx3xN) => Bx3xN
 y_true = torch.matmul(R_true, x) + t_true
