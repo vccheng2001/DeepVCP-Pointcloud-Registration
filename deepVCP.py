@@ -17,19 +17,34 @@ class DeepVCP(nn.Module):
     
     def forward(self, src_pts, tgt_pts):
         B, _, _ = src_pts.shape
+
+        # deep features exrtacted from FE layer: B x N x 32
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
+        print("src_deep_feat_pts: ", src_deep_feat_pts.shape)
+
         # obtain the top k indices for src point clouds
+        K_topk = 64
         src_keypts_idx = self.WL(src_deep_feat_pts)
-        src_keypts = src_pts[:, :, src_keypts_idx]
-        src_keypts = src_keypts.permute(0, 2, 1)
-        # group the keypoints
+        print("src_keypts_idx: ", src_keypts_idx.shape)
+        batch_mask = torch.arange(B)
+        batch_mask = batch_mask.unsqueeze(1).repeat(1, B)
+        batch_mask = batch_mask.flatten()
+
+        # indexing the src_pts to get keypts: B x K_topk x 6
+        src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
+        print("src_keypts: ", src_keypts)
+        # src_keyfeats = src_deep_feat_pts[]
+
+        # group the keypoints src_keypts_grouped_pts: B x 64 x nsample x 6
         src_keypts_grouped_xyz, src_keypts_grouped_pts = sample_and_group(npoint = 64, radius = 1, nsample = 32, \
                                                                           xyz = src_keypts[:, :, :3], \
-                                                                          points = src_keypts[:, :, 3:])
+                                                                          points = None)
         
+
         tgt_pts_xyz = tgt_pts[:, :3, :]
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
         tgt_deep_feat_xyz, tgt_deep_feat_pts = self.FE1(tgt_pts)
+
         # get candidate points for corresponding points of the keypts in src
         r = 2.0
         s = 0.4
@@ -39,6 +54,7 @@ class DeepVCP(nn.Module):
         # candidate_pts = voxelize(src_keypts, r, s)
         candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3)
 
+        # group the tgt_pts to feed into DFE layer
         sm = Sampling_Module()
         tgt_pts_grouped = sm(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
         print("tgt_pts_grouped", tgt_pts_grouped.shape)
