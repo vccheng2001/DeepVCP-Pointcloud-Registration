@@ -7,7 +7,10 @@ from pointnet2_utils import sample_and_group, index_points
 from deep_feat_extraction import feat_extraction_layer
 from weighting_layer import weighting_layer
 from voxelize import voxelize
-from sampling_module import Sampling_Module
+from get_cat_feat_tgt import Get_Cat_Feat_Tgt
+from get_cat_feat_src import Get_Cat_Feat_Src
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class DeepVCP(nn.Module):
     def __init__(self): 
@@ -48,19 +51,9 @@ class DeepVCP(nn.Module):
         src_keyfeats = index_points(src_deep_feat_pts, picked_idx)
         
         # normalize src_deep_feat_pts with distance between src point and its k nearest neighbors
-        # repeat src_keypts n sample times to normalize features and get local coordinates after grouping
-        # src_keypts_k: B x K_topk x nsample x 3
-        nsample = 32
-        src_keypts_k = src_keypts[:, :, :3].unsqueeze(2).repeat(1, 1, nsample, 1)
-        pdist = nn.PairwiseDistance(p = 2, keepdim = True)
-        src_dist = pdist(torch.flatten(src_keypts_k, start_dim = 0, end_dim = 2), \
-                         torch.flatten(src_keypts_grouped_pts[:, :, :, :3], start_dim = 0, end_dim = 2))
-        src_dist = src_dist.view(B, K_topk, nsample).unsqueeze(3).repeat(1, 1, 1, num_feat)
-
-        src_keypts_grouped_local = src_keypts_grouped_pts[:, :, :, :3] - src_keypts_k
-        src_keyfeats_normalized = src_keyfeats * src_dist
-
-        src_keyfeats_cat = torch.cat((src_keypts_grouped_local, src_keyfeats_normalized), dim = 3)
+        src_gcf = Get_Cat_Feat_Src()
+        src_keyfeats_cat = src_gcf(src_keypts, src_keypts_grouped_pts, src_keyfeats)
+        print("src_keyfeats_cat: ", src_keyfeats_cat.shape)
 
         tgt_pts_xyz = tgt_pts[:, :3, :]
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
@@ -73,11 +66,11 @@ class DeepVCP(nn.Module):
         # seems to not taking batch size in voxelize.py
         ###########################
         # candidate_pts = voxelize(src_keypts, r, s)
-        candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3)
+        candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3).to(device)
 
         # group the tgt_pts to feed into DFE layer
-        sm = Sampling_Module()
-        tgt_pts_grouped = sm(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        tgt_gcf = Get_Cat_Feat_Tgt()
+        tgt_pts_grouped = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
         print("tgt_pts_grouped", tgt_pts_grouped.shape)
 
         # obtain the top k indices for tgt point clouds
