@@ -70,13 +70,7 @@ class DeepVCP(nn.Module):
 
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
-        tgt_pts_grouped = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
-        print("tgt_pts_grouped", tgt_pts_grouped.shape)
+        src_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        print("src_keyfeats_cat", src_keyfeats_cat.shape)
 
-        # obtain the top k indices for tgt point clouds
-        tgt_keypts_idx = self.WL(tgt_deep_feat_pts)
-        tgt_keypts = tgt_pts[:, :, tgt_keypts_idx]
-        tgt_keypts = tgt_keypts.permute(0, 2, 1)
-        # group the keypoints
-        tgt_keypts_grouped_xyz, tgt_keypts_grouped_pts = sample_and_group(npoint = 64, radius = 1, nsample = 32, xyz = tgt_keypts[:, :, :3], points = tgt_keypts[:, :, 3:])
         return src_keypts
