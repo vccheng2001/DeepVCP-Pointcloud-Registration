@@ -10,26 +10,13 @@ from matplotlib import pyplot as plt
 from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
+from deepVCP_loss import deepVCP_loss
 from deep_feat_extraction import feat_extraction_layer
+import pcl
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
 
-''' 
-Define loss function 
-@params
-    y_true:     ground truth y
-    x_pred:     predicted xi
-    R:          rotation matrix
-    T:          translation
-    alpha:      loss weights 
-'''
-def loss_func(y_true, x_pred, R, T, alpha):
-    # l1 loss
-    loss1 = nn.L1Loss(reduction="mean") # sums and divides by N
-    # single optimization iteration 
-    loss2 = np.mean(abs(y_true - (R.dot(xi) + T)))
-    return alpha * loss1 + (1-alpha) * loss2 
 
 # singular value decomposition step to estimate
 # relative transformation given corresponding keypoint pairs {xi, yi}
@@ -86,13 +73,21 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (in_batch, label) in enumerate(train_loader):
+        for n_batch, (src, target, R) in enumerate(train_loader):
             # mini batch
-            in_batch, label = in_batch.to(device), label.to(device)
-            output_pts = model(in_batch, in_batch)
+            src, target, R = src.to(device), target.to(device), R.to(device)
+            # no translation for now
+            t_true = torch.zeros(B,N,3).to(device)
+            # ground turth y
+            y_true = torch.matmul(x,R_true) + t_true  
+            print('Source:',  src.shape)
+            print('Target:',  target.shape)
+            print('R', R.shape)
+            y_pred = model(src)
+            print('output of model shape', pred.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = loss_func(y_true, x_pred, R, T, alpha)
+            loss = deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
@@ -121,4 +116,16 @@ def main():
     print("Test L2 error:", l2_err)
 
 if __name__ == "__main__":
-    main()
+    pcl()
+    # A = torch.tensor([[1,0,0], [0,1,0.], [0,0,3.]], dtype=torch.float)
+    # R0 = torch.tensor([[np.cos(90), -np.sin(90),0], [np.sin(90), np.cos(90),0],[0,0,1]], dtype=torch.float)
+    # B = (R0.mm(A.T)).T
+    # t0 = torch.tensor([3., 3.,4])
+    # print('R0,t0', R0, t0 )
+
+    # B += t0
+    # R, t =get_transformation(A,B)
+    # print('got R,t', R, t )
+    # A_aligned = (R.mm(A.T)).T + t
+    # rmsd = torch.sqrt(((A_aligned - B)**2).sum(axis=1).mean())
+    

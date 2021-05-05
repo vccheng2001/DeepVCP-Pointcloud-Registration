@@ -76,8 +76,9 @@ class ModelNet40Dataset(Dataset):
 
         src_points = torch.cat((src_points, src_normals), dim = 0)
         # return source point cloud and transformed (target) point cloud 
-        return (src_points, target_points)
-                
+        return (src_points, target_points, R)
+
+        
 if __name__ == "__main__":
     root = './data/modelnet40_normal_resampled/'
     category = 'airplane/'
@@ -85,10 +86,8 @@ if __name__ == "__main__":
     index=0
     data = ModelNet40Dataset(root=root,category=category,augment=True)
     DataLoader = torch.utils.data.DataLoader(data, batch_size=16, shuffle=False)
-    for src, target in DataLoader:
-        print('Source:', src, src.shape)
-        print('Target:', target, target.shape)
-
+    for src, target, R in DataLoader:
+        print('Source:',  src.shape)
+        print('Target:',  target.shape)
+        print('R', R.shape)
         
-
-
