@@ -79,7 +79,7 @@ def main():
             print('Source:',  src.shape)
             print('Target:',  target.shape)
             print('R', R.shape)
-            y_pred = model(src)
+            y_pred = model(src, target)
             print('output of model shape', y_pred.shape)
             # zero gradient 
             optim.zero_grad()

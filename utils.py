@@ -1,5 +1,6 @@
 ''' Utility functions '''
 import itertools
+import torch
 import numpy as np
 import math 
 
@@ -24,12 +25,6 @@ def RotZ(theta):
                    [ 0           , 0            , 1 ]])
     return Rz
 
-# cartesian product of N arrays 
-def cart_prod(arrs):
-    return np.array(list(itertools.product(*arrs)))
-
 # euclidean distance between two points
 def euclidean_dist(a,b):
-    a = np.array(a)
-    b = np.array(b)
-    return np.linalg.norm(a-b)
+    return torch.linalg.norm(a-b)

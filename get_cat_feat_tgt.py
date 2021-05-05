@@ -28,8 +28,6 @@ class Get_Cat_Feat_Tgt(nn.Module):
                               normalized deep features (B x K_topk x C x nsample x (3 + num_feats))
         """
         B, _, _ = src_keypts.shape
-        candidate_pts_reshape = candidate_pts.view(B, candidate_pts.shape[1] * candidate_pts.shape[2], \
-                                                   candidate_pts.shape[3])
         
         # sample and group the candidate points
         # candidate_pts_grouped_xyz: B x K_topk x C x nsample x 3
