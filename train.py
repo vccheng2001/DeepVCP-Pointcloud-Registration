@@ -1,4 +1,3 @@
-from deepVCP import DeepVCP
 import os
 import numpy as np
 import torch
@@ -6,13 +5,14 @@ from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
+from deepVCP import DeepVCP
+
 from matplotlib import pyplot as plt
 from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
 from deepVCP_loss import deepVCP_loss
 from deep_feat_extraction import feat_extraction_layer
-import pcl
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -116,7 +116,7 @@ def main():
     print("Test L2 error:", l2_err)
 
 if __name__ == "__main__":
-    pcl()
+    main()
     # A = torch.tensor([[1,0,0], [0,1,0.], [0,0,3.]], dtype=torch.float)
     # R0 = torch.tensor([[np.cos(90), -np.sin(90),0], [np.sin(90), np.cos(90),0],[0,0,1]], dtype=torch.float)
     # B = (R0.mm(A.T)).T
@@ -128,4 +128,3 @@ if __name__ == "__main__":
     # print('got R,t', R, t )
     # A_aligned = (R.mm(A.T)).T + t
     # rmsd = torch.sqrt(((A_aligned - B)**2).sum(axis=1).mean())
-    

@@ -53,7 +53,6 @@ class DeepVCP(nn.Module):
         # normalize src_deep_feat_pts with distance between src point and its k nearest neighbors
         src_gcf = Get_Cat_Feat_Src()
         src_keyfeats_cat = src_gcf(src_keypts, src_keypts_grouped_pts, src_keyfeats)
-        print("src_keyfeats_cat: ", src_keyfeats_cat.shape)
 
         tgt_pts_xyz = tgt_pts[:, :3, :]
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
@@ -62,11 +61,10 @@ class DeepVCP(nn.Module):
         # get candidate points for corresponding points of the keypts in src
         r = 2.0
         s = 0.4
-        ###########################
-        # seems to not taking batch size in voxelize.py
-        ###########################
-        # candidate_pts = voxelize(src_keypts, r, s)
-        candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3).to(device)
+        
+        candidate_pts = voxelize(src_keypts, r, s)
+        # candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3).to(device)
+        print("candidate_pts: ", candidate_pts.shape)
 
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()

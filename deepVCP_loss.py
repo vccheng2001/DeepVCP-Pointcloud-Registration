@@ -1,7 +1,8 @@
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 import torch 
 from torch import nn
 from knn_cuda import KNN
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 '''
 obtain rotation and translation using single
@@ -116,32 +117,32 @@ def deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha):
     print(f"Loss: {loss}")
     return loss
 
+if __name__ == "__main__":
+    THRESHOLD = 5
+    N = 4
+    B = 2
+    alpha = 0.5
+    torch.manual_seed(0)
+    print(f'Using batch size: {B}, number of keypoints: {N}')
+    # original source keypoints: BxNx3
+    x = torch.randn(B,3,N).to(device) 
+    print('x',x)    
+    # output predicted points from previous layers of deepVCP
+    y_pred = torch.randn(B,3,N).to(device)
 
-THRESHOLD = 5
-N = 4
-B = 2
-alpha = 0.5
-torch.manual_seed(0)
-print(f'Using batch size: {B}, number of keypoints: {N}')
-# original source keypoints: BxNx3
-x = torch.randn(B,3,N).to(device) 
-print('x',x)    
-# output predicted points from previous layers of deepVCP
-y_pred = torch.randn(B,3,N).to(device)
+    # 30 degree rotation 
+    R_true = torch.Tensor([[[  0.7500000, -0.4330127,  0.5000000],
+    [0.6495190,  0.6250000, -0.4330127],
+    [-0.1250000,  0.6495190,  0.7500000 ]]])
 
-# 30 degree rotation 
-R_true = torch.Tensor([[[  0.7500000, -0.4330127,  0.5000000],
-   [0.6495190,  0.6250000, -0.4330127],
-  [-0.1250000,  0.6495190,  0.7500000 ]]])
+    R_true = R_true.repeat(B,1,1).to(device)
+    t_true = torch.zeros(B,3,1).repeat(1,1,N).to(device)
 
-R_true = R_true.repeat(B,1,1).to(device)
-t_true = torch.zeros(B,3,1).repeat(1,1,N).to(device)
+    print("Ground truth R:", R_true)
+    print("Ground truth t:", t_true)
 
-print("Ground truth R:", R_true)
-print("Ground truth t:", t_true)
+    # ground truth y: (Bx3x3)@(Bx3xN) => Bx3xN
+    y_true = torch.matmul(R_true, x) + t_true
 
-# ground truth y: (Bx3x3)@(Bx3xN) => Bx3xN
-y_true = torch.matmul(R_true, x) + t_true
-
-# get deepVCP loss
-deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha)
+    # get deepVCP loss
+    deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha)
