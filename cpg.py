@@ -21,11 +21,11 @@ class cpg(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
      
     def forward(self, source, transformed, candidates):
-        print(f"Source: {source}")
-        print(f"Transformed: {transformed}")
+        print(f"Source: {source.shape}")
+        print(f"Transformed: {transformed.shape}")
+        print(f"Candidates: {candidates.shape}")
 
-        # measure similarity of each source keypoint with its 
-        # possible corresponding candidates using dot prod on 32-dim FE descriptor
+        # use inner prod on 32-dim feature descriptors to measure similarity 
         # (B x N x 1 x 32) @ (B x N x 32 x C) = (B x N x 1 x C)
         similarity = torch.matmul(source, transformed)   # B x N x 1 x C 
         # convert to probability
