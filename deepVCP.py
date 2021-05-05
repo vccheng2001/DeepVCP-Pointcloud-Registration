@@ -9,6 +9,7 @@ from weighting_layer import weighting_layer
 from voxelize import voxelize
 from get_cat_feat_tgt import Get_Cat_Feat_Tgt
 from get_cat_feat_src import Get_Cat_Feat_Src
+from deep_feat_embedding import feat_embedding_layer
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -17,6 +18,7 @@ class DeepVCP(nn.Module):
         super(DeepVCP, self).__init__()
         self.FE1 = feat_extraction_layer()
         self.WL = weighting_layer()
+        self.DFE = feat_embedding_layer()
     
     def forward(self, src_pts, tgt_pts):
         B, _, _ = src_pts.shape
@@ -35,8 +37,6 @@ class DeepVCP(nn.Module):
 
         # indexing the src_pts to get keypts: B x K_topk x 6
         src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
-        print("src_keypts: ", src_keypts.shape)
-        # src_keyfeats = src_deep_feat_pts[]
 
         # group the keypoints 
         # src_keypts_grouped_pts: B x K_topk x nsample x 6
@@ -59,16 +59,20 @@ class DeepVCP(nn.Module):
         tgt_deep_feat_xyz, tgt_deep_feat_pts = self.FE1(tgt_pts)
 
         # get candidate points for corresponding points of the keypts in src
-        r = 2.0
+        r = 1.0
         s = 0.4
-        
         candidate_pts = voxelize(src_keypts, r, s)
-        # candidate_pts = torch.randn(B, src_keypts.shape[1], 552, 3).to(device)
-        print("candidate_pts: ", candidate_pts.shape)
 
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
-        src_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
-        print("src_keyfeats_cat", src_keyfeats_cat.shape)
+        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        print("tgt_keyfeats_cat", tgt_keyfeats_cat.shape)
+
+        # deep feature embedding
+        src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
+        tgt_dfe_feat = self.DFE(tgt_keyfeats_cat, src = False)
+        print("src_dfe_feat: ", src_dfe_feat.shape)
+        print("tgt_dfe_feat: ", tgt_dfe_feat.shape)
+
 
         return src_keypts
