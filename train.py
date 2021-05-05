@@ -76,15 +76,11 @@ def main():
         for n_batch, (src, target, R) in enumerate(train_loader):
             # mini batch
             src, target, R = src.to(device), target.to(device), R.to(device)
-            # no translation for now
-            t_true = torch.zeros(B,N,3).to(device)
-            # ground turth y
-            y_true = torch.matmul(x,R_true) + t_true  
             print('Source:',  src.shape)
             print('Target:',  target.shape)
             print('R', R.shape)
             y_pred = model(src)
-            print('output of model shape', pred.shape)
+            print('output of model shape', y_pred.shape)
             # zero gradient 
             optim.zero_grad()
             loss = deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha=0.5)

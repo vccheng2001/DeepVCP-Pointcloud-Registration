@@ -66,15 +66,19 @@ class ModelNet40Dataset(Dataset):
             Rz = RotZ(theta_z)
             R = Rx @ Ry @ Rz
 
-            # rotate source point cloud 
+            # rotate source point cloud and normals
             target_points = R @ src_points
+            target_normal = R @ target_points
 
         src_points = torch.from_numpy(src_points)
         src_normals = torch.from_numpy(src_normals)
         target_points = torch.from_numpy(target_points)
-        R = torch.from_numpy(R)
+        target_normal = torch.from_numpy(target_normal)
 
+        R = torch.from_numpy(R)
+        
         src_points = torch.cat((src_points, src_normals), dim = 0)
+        target_points = torch.cat((target_points, target_normal), dim = 0)
         # return source point cloud and transformed (target) point cloud 
         return (src_points, target_points, R)
 
