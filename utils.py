@@ -26,7 +26,7 @@ def RotZ(theta):
 
 # cartesian product of N arrays 
 def cart_prod(arrs):
-    return list(itertools.product(*arrs))
+    return np.array(list(itertools.product(*arrs)))
 
 # euclidean distance between two points
 def euclidean_dist(a,b):
