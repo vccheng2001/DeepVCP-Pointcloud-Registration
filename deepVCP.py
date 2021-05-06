@@ -10,6 +10,7 @@ from voxelize import voxelize
 from get_cat_feat_tgt import Get_Cat_Feat_Tgt
 from get_cat_feat_src import Get_Cat_Feat_Src
 from deep_feat_embedding import feat_embedding_layer
+from cpg import cpg
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -19,6 +20,7 @@ class DeepVCP(nn.Module):
         self.FE1 = feat_extraction_layer()
         self.WL = weighting_layer()
         self.DFE = feat_embedding_layer()
+        self.cpg = cpg()
     
     def forward(self, src_pts, tgt_pts):
         B, _, _ = src_pts.shape
@@ -62,6 +64,7 @@ class DeepVCP(nn.Module):
         r = 1.0
         s = 0.4
         candidate_pts = voxelize(src_keypts, r, s)
+        print("candidate_pts: ", candidate_pts.shape)
 
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
@@ -71,8 +74,12 @@ class DeepVCP(nn.Module):
         # deep feature embedding
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
         tgt_dfe_feat = self.DFE(tgt_keyfeats_cat, src = False)
-        print("src_dfe_feat: ", src_dfe_feat.shape)
-        print("tgt_dfe_feat: ", tgt_dfe_feat.shape)
 
+        # similarity learning
+        src_dfe_feat = src_dfe_feat.unsqueeze(2)
+        tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
+        
+        vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
+        print("vcp: ", vcp.shape)
 
         return src_keypts
