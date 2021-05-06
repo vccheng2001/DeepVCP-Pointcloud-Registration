@@ -11,15 +11,11 @@ value decomposition
        y: corresponding transformed points 
 '''
 def get_rigid_transform(x, y):
-    print("Getting rigid transform...")
-    print('x:', x.shape) # B x 3 x N 
-    print('y:', y.shape)
 
     # centroid of each point cloud: B x 3 x 1 
     centroid_x = torch.mean(x, dim=2, keepdim=True) 
     centroid_y = torch.mean(y, dim=2,  keepdim=True)
 
-    print('centroid_x', centroid_x)
     # dist of each point from centroid: B x 3 x N 
     dist_x = torch.sub(x, centroid_x)
     dist_y = torch.sub(y, centroid_y)
@@ -45,8 +41,6 @@ def get_rigid_transform(x, y):
 
     # solve for translation: Bx3xN
     t = centroid_y + torch.matmul(-R, centroid_x)
-    t = t.repeat(1,1,N)
-
     return R, t
 
 
@@ -61,31 +55,35 @@ def get_rigid_transform(x, y):
 @return R2: Bx3x3 calculated rotation matrix 
         t2: Bx3xN calculated translation
 '''
-
 def svd_optimization(x, y_pred, y_true, R_true, t_true):
 
-    # 1. first SVD to get rotation, translation
-    # R: Bx3x3, t: Bx3xN
-    R1, t1 = get_rigid_transform(x, y_true)   
+    # first SVD to get rotation, translation
+    R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
 
-    # Bx3xN
-    y_pred1 = torch.matmul(R1,x) + t1
+    y_pred1 = torch.matmul(R1,x) + t1       # Bx3xN
 
-    # 2. outlier rejection where K = 1
+    # get 1-nearest neighbor, outlier rejection
     knn = KNN(k=1, transpose_mode=False)
-    dist, index = knn(y_pred1, y_true) 
+    
+    dist, _ = knn(y_pred1, y_true)          # BxKxN
+    dist = dist.to(device)
 
-    # filter out points whose distance > threshold 
-    # y_pred1 = y_pred1[dist[:,0,:] < THRESHOLD].unsqueeze(1)
-    # x1 = x[dist[:,:,0] < THRESHOLD].unsqueeze(1)
+    # eliminate 20% outliers (keep 80% points with smallest 1-NN distance)
+    num_inliers = int(N*0.8)
+    inliers = torch.topk(dist, k=num_inliers, dim=-1,\
+                     largest=False, sorted=True).indices
+    inliers = inliers.repeat(1,3,1).to(device)
 
-    # 3. second SVD to refine rotation, translation
-    R2, t2 = get_rigid_transform(x1, y_true)    
+    y_pred1 = torch.gather(y_pred1, dim=-1, index = inliers) # Bx3xN'
+    x1 = torch.gather(x, dim=-1, index = inliers)            # Bx3xN'
+
+    # second SVD to refine rotation, translation
+    R2, t2 = get_rigid_transform(x1, y_pred1)    
    
     # predicted y points based on R2, t2   
-    y_pred2 = torch.matmul(R2, x) + t2
-    # return final rotation (Bx3x3), translation (Bx1x3)
+    y_pred2 = torch.matmul(R2, x1) + t2
     return R2, t2 
+
 
    
 '''
@@ -109,7 +107,6 @@ def deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha):
     print(f'Final Rotation: {R}')    
     print(f'Final Translation: {t}') 
     yi = torch.matmul(R,x) + t
-    
     loss2 = torch.mean(torch.sub(y_pred, yi))
 
     # combine loss
