@@ -22,7 +22,7 @@ class DeepVCP(nn.Module):
         self.DFE = feat_embedding_layer()
         self.cpg = cpg()
     
-    def forward(self, src_pts, tgt_pts):
+    def forward(self, src_pts, tgt_pts, R_init, t_init):
         B, _, _ = src_pts.shape
 
         # deep features exrtacted from FE layer: B x N x 32
@@ -60,11 +60,25 @@ class DeepVCP(nn.Module):
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
         tgt_deep_feat_xyz, tgt_deep_feat_pts = self.FE1(tgt_pts)
 
-        # get candidate points for corresponding points of the keypts in src
+        # rotate and translate the src_keypts with R_init and t_init
+        # get candidate points by voxelization
         r = 1.0
         s = 0.4
-        candidate_pts = voxelize(src_keypts, r, s)
-        print("candidate_pts: ", candidate_pts.shape)
+
+        # t_init: (1 x 3)
+        # R_init: (1 x 3 x 3)
+        # t_init_rep: (B x K_topk x 3)
+        # R_init_rep: (B x 3 x 3)
+        # src_keypts_T: (B x 3 x K_topk)
+        # src_transformed: (B x 3 x 3) @ (B x 3 x K_topk) = (B x 3 x K_topk)
+        # src_transformed_T: (B x K_topk x 3)
+        t_init_rep = t_init.unsqueeze(0).repeat(B, 1, 1)
+        R_init_rep = R_init.repeat(B, 1, 1)
+        src_keypts_T = src_keypts.permute(0, 2, 1)
+        src_keypts_T = src_keypts_T[:, :3, :]
+        src_transformed = torch.matmul(R_init_rep, src_keypts_T)
+        src_transformed_T = src_transformed.permute(0, 2, 1)
+        candidate_pts = voxelize(src_transformed_T, r, s)
 
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
@@ -82,4 +96,4 @@ class DeepVCP(nn.Module):
         vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
         print("vcp: ", vcp.shape)
 
-        return src_keypts
+        return src_keypts, vcp
