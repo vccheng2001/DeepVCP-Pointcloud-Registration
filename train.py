@@ -73,13 +73,14 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (src, target, R) in enumerate(train_loader):
+        for n_batch, (src, target, R, t) in enumerate(train_loader):
             # mini batch
-            src, target, R = src.to(device), target.to(device), R.to(device)
+            src, target, R, t = src.to(device), target.to(device), R.to(device), t.to(device)
             print('Source:',  src.shape)
             print('Target:',  target.shape)
             print('R', R.shape)
-            y_pred = model(src, target)
+            t_init = torch.zeros(1, 3)
+            y_pred = model(src, target, R, t_init)
             print('output of model shape', y_pred.shape)
             # zero gradient 
             optim.zero_grad()

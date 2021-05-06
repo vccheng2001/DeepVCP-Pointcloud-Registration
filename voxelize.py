@@ -17,9 +17,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # input: B x N x 3 
 # output:B x N x C x 3
 def voxelize(point_clouds, r, s):
-    print(type(point_clouds))
-    print(point_clouds.dtype)
-    print(point_clouds.shape)
     out = []
     B, N, _= point_clouds.shape
     # flatten into B x N 3-element tensors

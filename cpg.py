@@ -42,16 +42,17 @@ class cpg(nn.Module):
         print('Virtual corresponding points', vcp.shape)
         return vcp 
 
-net = cpg()
-B = 2
-N = 64
-C = 50
-feature_dim = 32
-out = torch.manual_seed(0)
+if __name__ == "__main__":
+    net = cpg()
+    B = 2
+    N = 64
+    C = 50
+    feature_dim = 32
+    out = torch.manual_seed(0)
 
-# randomize
-source = torch.randn(B,N,1,feature_dim)       # FE descriptor for source keypoints
-transformed = torch.randn(B,N,feature_dim,C)  # FE descriptor for transformed keypoint's candidates
-candidates = torch.randn(B,N,C,3)             # candidates xyz 
-# run cpg to get vcp
-vcp = net(source, transformed, candidates)
+    # randomize
+    source = torch.randn(B,N,1,feature_dim)       # FE descriptor for source keypoints
+    transformed = torch.randn(B,N,feature_dim,C)  # FE descriptor for transformed keypoint's candidates
+    candidates = torch.randn(B,N,C,3)             # candidates xyz 
+    # run cpg to get vcp
+    vcp = net(source, transformed, candidates)

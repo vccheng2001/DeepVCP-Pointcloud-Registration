@@ -57,7 +57,12 @@ class ModelNet40Dataset(Dataset):
             # generate random angles for rotation matrices 
             theta_x = np.random.uniform(0, np.pi*2)
             theta_y = np.random.uniform(0, np.pi*2)
-            theta_z = np.random.uniform(0, np.pi*2) 
+            theta_z = np.random.uniform(0, np.pi*2)
+
+            # generate random translation
+            translation_max = 1.0
+            translation_min = 0.0
+            t = (translation_max - translation_min) * torch.rand(3, 1) + translation_min
  
             # Generate target point cloud by doing a series of random
             # rotations on source point cloud 
@@ -70,7 +75,7 @@ class ModelNet40Dataset(Dataset):
             target_points = R @ src_points
             target_normal = R @ target_points
 
-        src_points = torch.from_numpy(src_points)
+        src_points = torch.from_numpy(src_points) + t
         src_normals = torch.from_numpy(src_normals)
         target_points = torch.from_numpy(target_points)
         target_normal = torch.from_numpy(target_normal)
@@ -80,7 +85,7 @@ class ModelNet40Dataset(Dataset):
         src_points = torch.cat((src_points, src_normals), dim = 0)
         target_points = torch.cat((target_points, target_normal), dim = 0)
         # return source point cloud and transformed (target) point cloud 
-        return (src_points, target_points, R)
+        return (src_points, target_points, R, t)
 
         
 if __name__ == "__main__":
