@@ -49,14 +49,16 @@ def get_rigid_transform(x, y):
 
 @param  x: Bx3xN source points 
         y_pred: Bx3xN transformed source points
-        y_true: ground truth y 
         R_true: Bx3x3 ground truth rotation
         t_true: Bx3xN ground truth translation 
 @return R2: Bx3x3 calculated rotation matrix 
         t2: Bx3xN calculated translation
 '''
-def svd_optimization(x, y_pred, y_true, R_true, t_true):
+def svd_optimization(x, y_true, R_true, t_true):
 
+    # ground truth y: Bx3xN
+    y_true = torch.matmul(R_true, x) + t_true
+    
     # first SVD to get rotation, translation
     R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
 
@@ -90,7 +92,6 @@ def svd_optimization(x, y_pred, y_true, R_true, t_true):
 Combine L1 loss function with 
 @param  x: Bx3xN source points 
         y_pred: Bx3xN transformed source points
-        y_true: ground truth y 
         R_true: Bx3x3 ground truth rotation
         t_true: Bx3xN ground truth translation 
         alpha:  loss balancing factor
@@ -98,12 +99,12 @@ Combine L1 loss function with
         t: Bx3xN calcualted translation
 '''
 
-def deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha):
+def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") 
 
     # svd loss
-    R, t = svd_optimization(x, y_pred, y_true, R_true, t_true)
+    R, t = svd_optimization(x, y_pred, R_true, t_true)
     print(f'Final Rotation: {R}')    
     print(f'Final Translation: {t}') 
     yi = torch.matmul(R,x) + t
@@ -138,8 +139,6 @@ if __name__ == "__main__":
     print("Ground truth R:", R_true)
     print("Ground truth t:", t_true)
 
-    # ground truth y: (Bx3x3)@(Bx3xN) => Bx3xN
-    y_true = torch.matmul(R_true, x) + t_true
 
     # get deepVCP loss
-    deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha)
+    deepVCP_loss(x, y_pred, R_true, t_true, alpha)
