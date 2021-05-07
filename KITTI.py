@@ -1,7 +1,7 @@
 import os
 import torch.utils.data as data
-from utils.pointcloud import make_point_cloud, estimate_normal
-from utils.SE3 import *
+from utils_kitti.pointcloud import make_point_cloud, estimate_normal
+from utils_kitti.SE3 import *
 
 class KITTIDataset(data.Dataset):
     def __init__(self,
