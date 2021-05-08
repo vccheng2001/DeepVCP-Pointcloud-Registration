@@ -15,17 +15,10 @@ Each pose contains top 12 points of of HT only
 @return poses: Nx12
 '''
 def load_poses(file):
-    # torch.as_tensor(st, dtype=torch.float32)
     pose = np.loadtxt(file)
     assert(pose.shape[1] == 12)
     return pose
 
-'''
-velodyne to world coords: ? 
-'''
-def velo_to_world(matrix):
-    assert(matrix.shape[0] == 3)
-    pass
 
 '''
 Transforms src points using pose from 'pose.txt'
@@ -40,26 +33,39 @@ def ht_transform(src, pose):
     ht = np.vstack((pose.reshape(3,4), [0,0,0,1]))
     
     # appends col of 1s to make dim 4
-    src = np.c_[src, np.ones(src.shape[0])] 
+    src = np.c_[src, np.ones(src.shape[0])]     # Nx3 -> Nx4
 
     # transform 
-    transformed = ht @ src.T 
-    transformed = transformed.T[:,:-1]
+    transformed = ht @ src.T                    # 4x4 x 4xN = 4xN 
+    print(ht.shape,'ht')
+    print(src.shape,'src')
+    transformed = transformed.T[:,:-1]          # keep N x 3 
     return transformed
 
-
+''' 
+Downsample point cloud to N points 
+@params  src: original source point cloud
+           N: number of points desired
+@returns src: sampled point cloud
+'''
+def downsample(src, N=5000):
+    num_src = src.shape[0]
+    src_downsample_indices = np.arange(num_src)
+    if num_src > N:
+        src_downsample_indices = np.random.choice(num_src, N, replace=False)
+    return src[src_downsample_indices,:]
 
 class KITTIDataset(Dataset):
     def __init__(self, root, augment=True, rotate=True, split="train", N=5000):
         self.root = root
         self.split = split
         self.augment = augment
-        self.points = []
         self.N = N
         self.files = []
+        self.points = []
         self.reflectances = []
 
-        # path to pointclouds + poses
+        # path to pointclouds + poses (using sequence 00 for now)
         path = f"{self.root}/{split}/sequences/00/velodyne/"
         pose_path = f"{self.root}/{split}/sequences/"
 
@@ -73,26 +79,22 @@ class KITTIDataset(Dataset):
 
             # load point clouds (N x 4)
             src = np.fromfile(path + file, dtype=np.float32, count=-1).reshape([-1,4])
-            num_src = src.shape[0]
-            print("Raw number of points...: ", num_src)
+            print("Raw number of points...: ", src.shape)
 
-            # downsample if necessary
-            src_downsample_indices = np.arange(num_src)
-            if num_src > N:
-                src_downsample_indices = np.random.choice(num_src, N, replace=False)
-            src = src[src_downsample_indices,:]
+            # downsample if num points > N
+            src = downsample(src, self.N)                           # N x 4
             print('Num points after downsampling..', src.shape)
 
             # split into xyz, reflectances
-            src_points = src[:, :3]                     
-            src_reflectance = np.expand_dims(src[:,-1], axis=1)
+            src_points = src[:, :3]                                 # N x 3
+            src_reflectance = np.expand_dims(src[:,-1], axis=1)     # N x 1
 
             # make pose HT and transform points
             src_points = ht_transform(src_points, poses[index])
             print('After transform', src_points.shape)
             
-            self.points.append(src_points)
             self.files.append(file)
+            self.points.append(src_points)
             self.reflectances.append(src_reflectance)
 
         print('# Total clouds', len(self.points))
@@ -132,7 +134,7 @@ class KITTIDataset(Dataset):
         
         src_points = torch.from_numpy(src_points)
         target_points = torch.from_numpy(target_points)
-
+        src_reflectance = torch.from_numpy(src_reflectance)
         R = torch.from_numpy(R)
         
         # return source point cloud and transformed (target) point cloud 
@@ -143,7 +145,7 @@ if __name__ == "__main__":
     data = KITTIDataset(root='./data/KITTI', N=5000, augment=True, split="train")
     DataLoader = torch.utils.data.DataLoader(data, batch_size=16, shuffle=False) 
     for src, target, R, t, src_reflectance in DataLoader:
-        print('Source:',  src.shape)                # batch x 3 x N 
-        print('Target:',  target.shape)             # batch x 3 x N
+        print('Source:',  src.shape)                # B x 3 x N 
+        print('Target:',  target.shape)             # B x 3 x N
         print('R', R.shape)                     
-        print('Reflectance', src_reflectance.shape) # batch x 1 x N 
+        print('Reflectance', src_reflectance.shape) # B x 1 x N 
