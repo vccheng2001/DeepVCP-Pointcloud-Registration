@@ -12,7 +12,6 @@ from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
 from deepVCP_loss import deepVCP_loss
-from deep_feat_extraction import feat_extraction_layer
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -41,14 +40,14 @@ def main():
     # Load ModelNet40 data 
     print('Loading Model40 dataset ...')
 
+    # root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
     root = 'data/modelnet40_normal_resampled/'
     # only use airplane for now
-    category = "airplane"
-    shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
+    # shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
 
 
-    train_data= ModelNet40Dataset(root=root, category=category, split='train')
-    test_data = ModelNet40Dataset(root=root, category=category, split='test')
+    train_data= ModelNet40Dataset(root=root, split='train')
+    test_data = ModelNet40Dataset(root=root, split='test')
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
@@ -63,7 +62,7 @@ def main():
     model.to(device)
 
     # Define the optimizer
-    optimizer = Adam(model.parameters(), lr=lr)
+    optim = Adam(model.parameters(), lr=lr)
 
     # begin train 
     model.train()
@@ -73,18 +72,19 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (src, target, R, t) in enumerate(train_loader):
+        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
             # mini batch
-            src, target, R, t = src.to(device), target.to(device), R.to(device), t.to(device)
+            src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             print('Source:',  src.shape)
             print('Target:',  target.shape)
-            print('R', R.shape)
+            print('R', R_gt.shape)
             t_init = torch.zeros(1, 3)
-            y_pred = model(src, target, R, t_init)
-            print('output of model shape', y_pred.shape)
+            src_keypts, target_vcp = model(src, target, R_gt, t_init)
+            print('src_keypts shape', src_keypts.shape)
+            print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha=0.5)
+            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
@@ -102,15 +102,15 @@ def main():
     # begin test 
     model.eval()
     with torch.no_grad():
-        for n_batch, (in_batch, label) in enumerate(test_loader):
-            in_batch, label = in_batch.to(device), label.to(device)
+        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
+            # mini batch
+            src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
+            t_init = torch.zeros(1, 3)
+            src_keypts, target_vcp = model.test(src, target, R_gt, t_init)
 
-            pred = model.test(in_batch)
+            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
 
-            l2_err += loss(pred, label).item()
-            l2_err += l2_loss(pred, label).item()
-
-    print("Test L2 error:", l2_err)
+    print("Test loss:", loss)
 
 if __name__ == "__main__":
     main()
