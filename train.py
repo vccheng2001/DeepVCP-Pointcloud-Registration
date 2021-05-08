@@ -63,7 +63,7 @@ def main():
     model.to(device)
 
     # Define the optimizer
-    optimizer = Adam(model.parameters(), lr=lr)
+    optim = Adam(model.parameters(), lr=lr)
 
     # begin train 
     model.train()
@@ -80,11 +80,16 @@ def main():
             print('Target:',  target.shape)
             print('R', R.shape)
             t_init = torch.zeros(1, 3)
-            y_pred = model(src, target, R, t_init)
-            print('output of model shape', y_pred.shape)
+            src_keypts, target_vcp = model(src, target, R, t_init)
+            #################
+            # change this 
+            #################
+            target_keypts_gt = R @ src_keypts + t
+            print('src_keypts shape', src_keypts.shape)
+            print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(x, y_pred, y_true, R_true, t_true, alpha=0.5)
+            loss = deepVCP_loss(src_keypts, target_vcp, target_keypts_gt, R, t, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
