@@ -25,8 +25,8 @@ class KITTIDataset(Dataset):
         self.points = []
         self.reflectances = []
 
-        # path to pointclouds + poses (using sequence 00 for now)
-        path = f"{self.root}/{split}/sequences/00/velodyne/"
+        # path to pointclouds + poses
+        path = f"{self.root}sequences/00/velodyne/"
 
         for file in os.listdir(path):
             print(f'\nProcessing file:...', file)
