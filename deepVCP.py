@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from knn_cuda import KNN
 
 from pointnet2_utils import sample_and_group, index_points
 from deep_feat_extraction import feat_extraction_layer
@@ -93,7 +91,7 @@ class DeepVCP(nn.Module):
         src_dfe_feat = src_dfe_feat.unsqueeze(2)
         tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
         
-        vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
-        print("vcp: ", vcp.shape)
+        tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
+        print("vcp: ", tgt_vcp.shape)
 
-        return src_keypts, vcp
+        return src_keypts, tgt_vcp
