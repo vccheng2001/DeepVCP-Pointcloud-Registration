@@ -6,9 +6,12 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from deepVCP import DeepVCP
-
+import matplotlib
 from matplotlib import pyplot as plt
+matplotlib.use("Agg")
 from ModelNet40Dataset import ModelNet40Dataset
+from KITTIDataset import KITTIDataset
+
 from utils import *
 
 from deepVCP_loss import deepVCP_loss
