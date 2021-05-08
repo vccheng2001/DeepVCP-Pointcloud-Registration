@@ -10,15 +10,17 @@ from utils import *
 
 
 class ModelNet40Dataset(Dataset):
-    def __init__(self, root, category, augment=True, rotate=True, split="train"):
+    def __init__(self, root, augment=True, rotate=True, split="train"):
         # root directory 
         self.root = root
-        self.category = category 
         self.split = split
         self.augment = augment
         self.points = []
         self.normals = []
         self.labels = []
+        self.catfile = os.path.join(self.root, 'modelnet40_shape_names.txt')
+
+        self.cat = [line.rstrip() for line in open(self.catfile)]
 
         # training file names 
         names = np.loadtxt(os.path.join(self.root, \
@@ -27,7 +29,11 @@ class ModelNet40Dataset(Dataset):
         # iterate through training files 
         for i, file in enumerate(names):
             # read point clouds
-            txt_file= os.path.join(self.root, self.category, file) + '.txt'
+            print(file)
+            category, num = file.split('_0')
+            print(category)
+            print(num)
+            txt_file= os.path.join(self.root, category, file) + '.txt'
             data = np.loadtxt(txt_file, delimiter=',', dtype=np.float64)
 
             points = data[:, :3]    # xyz

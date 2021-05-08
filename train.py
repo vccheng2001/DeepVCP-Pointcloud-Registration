@@ -41,14 +41,13 @@ def main():
     # Load ModelNet40 data 
     print('Loading Model40 dataset ...')
 
-    root = 'data/modelnet40_normal_resampled/'
+    root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
     # only use airplane for now
-    category = "airplane"
-    shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
+    # shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
 
 
-    train_data= ModelNet40Dataset(root=root, category=category, split='train')
-    test_data = ModelNet40Dataset(root=root, category=category, split='test')
+    train_data= ModelNet40Dataset(root=root, split='train')
+    test_data = ModelNet40Dataset(root=root, split='test')
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
