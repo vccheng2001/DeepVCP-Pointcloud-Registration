@@ -1,152 +1,86 @@
 import os
-import torch.utils.data as data
 from utils_kitti.pointcloud import make_point_cloud, estimate_normal
 from utils_kitti.SE3 import *
+from utils import *
+from torch.utils.data import Dataset, DataLoader
 
-class KITTIDataset(data.Dataset):
-    def __init__(self,
-                root,
-                split='train',
-                descriptor='fcgf',
-                in_dim=6,
-                inlier_threshold=0.60,
-                num_node=5000,
-                use_mutual=True,
-                downsample=0.30,
-                augment_axis=0,
-                augment_rotation=1.0,
-                augment_translation=0.01,
-                ):
+class KITTIDataset(Dataset):
+    def __init__(self, root, augment=True, rotate=True, split="train", N=5000):
         self.root = root
         self.split = split
-        self.descriptor = descriptor
-        assert descriptor in ['fcgf', 'fpfh']
-        self.in_dim = in_dim
-        self.inlier_threshold = inlier_threshold
-        self.num_node = num_node
-        self.use_mutual = use_mutual
-        self.downsample = downsample
-        self.augment_axis = augment_axis
-        self.augment_rotation = augment_rotation
-        self.augment_translation = augment_translation
+        self.augment = augment
+        self.points = []
+        self.N = N
+        self.files = []
 
-        # containers
-        self.ids_list = []
+        path = f"{self.root}/{split}/sequences/00/velodyne/"
+        for i, file in enumerate(os.listdir(path)):
+            print('file', file)
+            points = np.fromfile(path+file, dtype=np.float32, count=-1).reshape([-1,4])
+            self.points.append(points)
+            self.files.append(file)
 
-        for filename in os.listdir(f"{self.root}/{descriptor}_{split}/"):
-            self.ids_list.append(os.path.join(f"{self.root}/{descriptor}_{split}/", filename))
-
-        # self.ids_list = sorted(self.ids_list, key=lambda x: int(x.split('_')[-1].split('.')[0]))
-
-    def __getitem__(self, index):
-        # load meta data
-        filename = self.ids_list[index]
-        data = np.load(filename)
-        src_keypts = data['xyz0']
-        tgt_keypts = data['xyz1']
-        src_features = data['features0']
-        tgt_features = data['features1']
-        if self.descriptor == 'fpfh':
-            src_features = src_features / (np.linalg.norm(src_features, axis=1, keepdims=True) + 1e-6)
-            tgt_features = tgt_features / (np.linalg.norm(tgt_features, axis=1, keepdims=True) + 1e-6)
-
-        # compute ground truth transformation
-        orig_trans = data['gt_trans']
-        # data augmentation
-        if self.split == 'train':
-            src_keypts += np.random.rand(src_keypts.shape[0], 3) * 0.05
-            tgt_keypts += np.random.rand(tgt_keypts.shape[0], 3) * 0.05
-        aug_R = rotation_matrix(self.augment_axis, self.augment_rotation)
-        aug_T = translation_matrix(self.augment_translation)
-        aug_trans = integrate_trans(aug_R, aug_T)
-        tgt_keypts = transform(tgt_keypts, aug_trans)
-        gt_trans = concatenate(aug_trans, orig_trans)
-
-        # select {self.num_node} numbers of keypoints
-        N_src = src_features.shape[0]
-        N_tgt = tgt_features.shape[0]
-        src_sel_ind = np.arange(N_src)
-        tgt_sel_ind = np.arange(N_tgt)
-        if self.num_node != 'all' and N_src > self.num_node:
-            src_sel_ind = np.random.choice(N_src, self.num_node, replace=False)
-        if self.num_node != 'all' and N_tgt > self.num_node:
-            tgt_sel_ind = np.random.choice(N_tgt, self.num_node, replace=False)
-        src_desc = src_features[src_sel_ind, :]
-        tgt_desc = tgt_features[tgt_sel_ind, :]
-        src_keypts = src_keypts[src_sel_ind, :]
-        tgt_keypts = tgt_keypts[tgt_sel_ind, :]
-
-        # construct the correspondence set by mutual nn in feature space.
-        distance = np.sqrt(2 - 2 * (src_desc @ tgt_desc.T) + 1e-6)
-        source_idx = np.argmin(distance, axis=1)
-        if self.use_mutual:
-            target_idx = np.argmin(distance, axis=0)
-            mutual_nearest = (target_idx[source_idx] == np.arange(source_idx.shape[0]))
-            corr = np.concatenate([np.where(mutual_nearest == 1)[0][:,None], source_idx[mutual_nearest][:,None]], axis=-1)
-        else:
-            corr = np.concatenate([np.arange(source_idx.shape[0])[:, None], source_idx[:, None]], axis=-1)
-
-        # compute the ground truth label
-        frag1 = src_keypts[corr[:, 0]]
-        frag2 = tgt_keypts[corr[:, 1]]
-        frag1_warp = transform(frag1, gt_trans)
-        distance = np.sqrt(np.sum(np.power(frag1_warp - frag2, 2), axis=1))
-        labels = (distance < self.inlier_threshold).astype(np.int)
-
-        # add random outlier to input data
-        if self.split == 'train' and np.mean(labels) > 0.5:
-            num_outliers = int(0.0 * len(corr))
-            src_outliers = np.random.randn(num_outliers, 3) * np.mean(src_keypts, axis=0)
-            tgt_outliers = np.random.randn(num_outliers, 3) * np.mean(tgt_keypts, axis=0)
-            input_src_keypts = np.concatenate( [src_keypts[corr[:, 0]], src_outliers], axis=0)
-            input_tgt_keypts = np.concatenate( [tgt_keypts[corr[:, 1]], tgt_outliers], axis=0)
-            labels = np.concatenate( [labels, np.zeros(num_outliers)], axis=0)
-        else:
-            # prepare input to the network
-            input_src_keypts = src_keypts[corr[:, 0]]
-            input_tgt_keypts = tgt_keypts[corr[:, 1]]
-
-        if self.in_dim == 3:
-            corr_pos = input_src_keypts - input_tgt_keypts
-        elif self.in_dim == 6:
-            corr_pos = np.concatenate([input_src_keypts, input_tgt_keypts], axis=-1)
-            # move the center of each point cloud to (0,0,0).
-            corr_pos = corr_pos - corr_pos.mean(0)
-        elif self.in_dim == 9:
-            corr_pos = np.concatenate([input_src_keypts, input_tgt_keypts, input_src_keypts-input_tgt_keypts], axis=-1)
-        elif self.in_dim == 12:
-            src_pcd = make_point_cloud(src_keypts)
-            tgt_pcd = make_point_cloud(tgt_keypts)
-            estimate_normal(src_pcd, radius=self.downsample*2)
-            estimate_normal(tgt_pcd, radius=self.downsample*2)
-            src_normal = np.array(src_pcd.normals)
-            tgt_normal = np.array(tgt_pcd.normals)
-            src_normal = src_normal[src_sel_ind, :]
-            tgt_normal = tgt_normal[tgt_sel_ind, :]
-            input_src_normal = src_normal[corr[:, 0]]
-            input_tgt_normal = tgt_normal[corr[:, 1]]
-            corr_pos = np.concatenate([input_src_keypts, input_src_normal, input_tgt_keypts, input_tgt_normal], axis=-1)
-
-        return corr_pos.astype(np.float32), \
-            input_src_keypts.astype(np.float32), \
-            input_tgt_keypts.astype(np.float32), \
-            gt_trans.astype(np.float32), \
-            labels.astype(np.float32),
+        print('# Total clouds', len(self.points))
 
     def __len__(self):
-        return len(self.ids_list)
+        return len(self.points)
+
+    def __getitem__(self, index):
+        # source pointcloud 
+        src = self.points[index]
+        print("Processing file: ", self.files[index])
+        num_src = src.shape[0]          # num points 
+        print('Number of points in raw cloud', num_src)
+
+        # randomly subsample N points
+        src_sel_ind = np.arange(num_src)
+        if num_src > self.N:
+            src_sel_ind = np.random.choice(num_src, self.N, replace=False)
+        src = src[src_sel_ind, :]
+
+        # split into xyz coords, reflectance 
+        src_points= src[:, :3]                   # N x 3
+        src_reflectance = src[:,-1]               # N x 1
+        print('src_points', src_points.shape)
+        
+        # data augmentation
+        if self.augment:
+            # generate random angles for rotation matrices 
+            theta_x = np.random.uniform(0, np.pi*2)
+            theta_y = np.random.uniform(0, np.pi*2)
+            theta_z = np.random.uniform(0, np.pi*2)
+
+            # generate random translation
+            translation_max = 1.0
+            translation_min = 0.0
+            t = (translation_max - translation_min) * torch.rand(3, 1) + translation_min
+ 
+            # Generate target point cloud by doing a series of random
+            # rotations on source point cloud 
+            Rx = RotX(theta_x)
+            Ry = RotY(theta_y)
+            Rz = RotZ(theta_z)
+            R = Rx @ Ry @ Rz
+
+            src_points = src_points.T
+            # rotate source point cloud
+            target_points = R @ src_points
+        
+        src_points = torch.from_numpy(src_points)
+        target_points = torch.from_numpy(target_points)
+
+        R = torch.from_numpy(R)
+        
+        # return source point cloud and transformed (target) point cloud 
+        # src, target: B x 3 x N
+        # reflectance : B x 1 x N 
+        return (src_points, target_points, R, t, src_reflectance)
 
 if __name__ == "__main__":
-    dset = KITTIDataset(
-                    root='/data/KITTI/',
-                    split='test',
-                    descriptor='fcgf',
-                    num_node=5000,
-                    use_mutual=False,
-                    augment_axis=0,
-                    augment_rotation=0,
-                    augment_translation=0.00
-                    )
-    print(len(dset))
-    for i in range(dset.__len__()):
-        ret_dict = dset[i]
+    data = KITTIDataset(root='./data/KITTI', N=5000, augment=True, split="train")
+    DataLoader = torch.utils.data.DataLoader(data, batch_size=16, shuffle=False) 
+    for src, target, R, t, src_reflectance in DataLoader:
+        print('Source:',  src.shape)
+        print('Target:',  target.shape)
+        print('R', R.shape)
+        print('Reflectance', src_reflectance.shape)
