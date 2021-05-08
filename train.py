@@ -73,23 +73,19 @@ def main():
 
         running_loss = 0.0
 
-        for n_batch, (src, target, R, t) in enumerate(train_loader):
+        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
             # mini batch
-            src, target, R, t = src.to(device), target.to(device), R.to(device), t.to(device)
+            src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             print('Source:',  src.shape)
             print('Target:',  target.shape)
-            print('R', R.shape)
+            print('R', R_gt.shape)
             t_init = torch.zeros(1, 3)
-            src_keypts, target_vcp = model(src, target, R, t_init)
-            #################
-            # change this 
-            #################
-            target_keypts_gt = R @ src_keypts + t
+            src_keypts, target_vcp = model(src, target, R_gt, t_init)
             print('src_keypts shape', src_keypts.shape)
             print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(src_keypts, target_vcp, target_keypts_gt, R, t, alpha=0.5)
+            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 
@@ -107,15 +103,15 @@ def main():
     # begin test 
     model.eval()
     with torch.no_grad():
-        for n_batch, (in_batch, label) in enumerate(test_loader):
-            in_batch, label = in_batch.to(device), label.to(device)
+        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
+            # mini batch
+            src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
+            t_init = torch.zeros(1, 3)
+            src_keypts, target_vcp = model.test(src, target, R_gt, t_init)
 
-            pred = model.test(in_batch)
+            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
 
-            l2_err += loss(pred, label).item()
-            l2_err += l2_loss(pred, label).item()
-
-    print("Test L2 error:", l2_err)
+    print("Test loss:", loss)
 
 if __name__ == "__main__":
     main()

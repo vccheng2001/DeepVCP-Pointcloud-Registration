@@ -10,7 +10,6 @@ from utils import *
 
 
 class ModelNet40Dataset(Dataset):
-
     def __init__(self, root, category, augment=True, rotate=True, split="train"):
         # root directory 
         self.root = root

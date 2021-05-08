@@ -62,7 +62,7 @@ def svd_optimization(x, y_true, R_true, t_true):
     # first SVD to get rotation, translation
     R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
 
-    y_pred1 = torch.matmul(R1,x) + t1       # Bx3xN
+    y_pred1 = torch.matmul(R1, x) + t1       # Bx3xN
 
     # get 1-nearest neighbor, outlier rejection
     knn = KNN(k=1, transpose_mode=False)
@@ -107,11 +107,11 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     R, t = svd_optimization(x, y_pred, R_true, t_true)
     print(f'Final Rotation: {R}')    
     print(f'Final Translation: {t}') 
-    yi = torch.matmul(R,x) + t
-    loss2 = torch.mean(torch.sub(y_pred, yi))
+    y_true = torch.matmul(R_true, x) + t_true
+    loss2 = torch.mean(torch.sub(y_pred, y_true))
 
     # combine loss
-    loss = alpha * loss1(x,y_pred) + (1-alpha) * loss2 
+    loss = alpha * loss1(y_true, y_pred) + (1 - alpha) * loss2 
     print(f"Loss: {loss}")
     return loss
 
