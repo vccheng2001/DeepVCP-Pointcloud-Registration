@@ -25,12 +25,10 @@ class DeepVCP(nn.Module):
 
         # deep features exrtacted from FE layer: B x N x 32
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
-        print("src_deep_feat_pts: ", src_deep_feat_pts.shape)
 
         # obtain the top k indices for src point clouds
         K_topk = 64
         src_keypts_idx = self.WL(src_deep_feat_pts)
-        print("src_keypts_idx: ", src_keypts_idx.shape)
         batch_mask = torch.arange(B)
         batch_mask = batch_mask.unsqueeze(1).repeat(1, B)
         batch_mask = batch_mask.flatten()

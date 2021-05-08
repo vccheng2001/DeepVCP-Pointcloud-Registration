@@ -105,17 +105,13 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     loss1 = nn.L1Loss(reduction="mean") 
 
     # svd loss
-    print('R_true: ', R_true.shape)
-    print('x', x.shape)
+ 
     R, t = svd_optimization(x, y_pred, R_true, t_true)
-    print(f'Final Rotation: {R}')    
-    print(f'Final Translation: {t}')
     y_true = torch.matmul(R_true, x) + t_true
     loss2 = torch.mean(torch.sub(y_pred, y_true))
 
     # combine loss
     loss = alpha * loss1(y_true, y_pred) + (1 - alpha) * loss2 
-    print(f"Loss: {loss}")
     return loss
 
 if __name__ == "__main__":

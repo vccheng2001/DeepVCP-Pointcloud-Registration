@@ -54,9 +54,7 @@ class ModelNet40Dataset(Dataset):
         # source pointcloud
         src_points, src_normals, src_file =  self.points[index].T, self.normals[index].T, self.labels[index]
         
-        print('Source file name:', src_file)
-        print('pts', src_points.shape)
-        print('norm', src_normals.shape)
+        print('Processing file:', src_file)
         # Augment by rotating x, z axes
         if self.augment:
             # generate random angles for rotation matrices 
