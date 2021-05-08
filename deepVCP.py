@@ -25,12 +25,10 @@ class DeepVCP(nn.Module):
 
         # deep features exrtacted from FE layer: B x N x 32
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
-        print("src_deep_feat_pts: ", src_deep_feat_pts.shape)
 
         # obtain the top k indices for src point clouds
         K_topk = 64
         src_keypts_idx = self.WL(src_deep_feat_pts)
-        print("src_keypts_idx: ", src_keypts_idx.shape)
         batch_mask = torch.arange(B)
         batch_mask = batch_mask.unsqueeze(1).repeat(1, B)
         batch_mask = batch_mask.flatten()
@@ -81,7 +79,6 @@ class DeepVCP(nn.Module):
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
         tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
-        print("tgt_keyfeats_cat", tgt_keyfeats_cat.shape)
 
         # deep feature embedding
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
@@ -92,6 +89,5 @@ class DeepVCP(nn.Module):
         tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
         
         tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
-        print("vcp: ", tgt_vcp.shape)
 
         return src_keypts[:, :, :3], tgt_vcp

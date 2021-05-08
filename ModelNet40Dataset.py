@@ -18,21 +18,18 @@ class ModelNet40Dataset(Dataset):
         self.points = []
         self.normals = []
         self.labels = []
-        self.catfile = os.path.join(self.root, 'modelnet40_shape_names.txt')
+        self.catfile = os.path.join(self.root, 'modelnet10_shape_names.txt')
 
         self.cat = [line.rstrip() for line in open(self.catfile)]
 
         # training file names 
         names = np.loadtxt(os.path.join(self.root, \
-            f'modelnet40_{split}.txt'), dtype=np.str)
+            f'modelnet10_{split}.txt'), dtype=np.str)
 
         # iterate through training files 
         for i, file in enumerate(names):
             # read point clouds
-            print(file)
             category, num = file.split('_0')
-            print(category)
-            print(num)
             txt_file= os.path.join(self.root, category, file) + '.txt'
             data = np.loadtxt(txt_file, delimiter=',', dtype=np.float64)
 

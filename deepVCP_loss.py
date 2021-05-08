@@ -22,8 +22,6 @@ def get_rigid_transform(x, y):
 
     # covariance matrix H
     # (B x 3 x N) * (B x N x 3) => H: B x 3 x 3
-    print(dist_x.dtype)
-    print(dist_y.dtype)
     H = torch.matmul(dist_x, dist_y.permute(0,2,1))
 
     # Singular value decomposition of covariance matrix H = USV^T 
@@ -61,8 +59,6 @@ def svd_optimization(x, y_pred, R_true, t_true):
     # ground truth y: Bx3xN
     y_true = torch.matmul(R_true, x) + t_true
     y_pred = y_pred.double().permute(0, 2, 1)
-    print("y_pred", y_pred.shape)
-    print("x", x.dtype)
     B, N, _ = y_pred.shape
     # first SVD to get rotation, translation
     R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
@@ -110,14 +106,8 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     loss1 = nn.L1Loss(reduction="mean") 
 
     # svd loss
-    print('R_true: ', R_true.shape)
-    print('x', x.shape)
     R, t = svd_optimization(x, y_pred, R_true, t_true)
-    print(f'Final Rotation: {R}')    
-    print(f'Final Translation: {t}')
     y_true = torch.matmul(R_true, x) + t_true
-    print("y_pred", y_pred.shape)
-    print("y_true", y_true.shape)
     y_true = y_true.permute(0, 2, 1)
     loss2 = torch.abs(torch.mean(torch.sub(y_pred, y_true)))
 

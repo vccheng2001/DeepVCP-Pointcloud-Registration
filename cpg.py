@@ -21,9 +21,9 @@ class cpg(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
      
     def forward(self, source, transformed, candidates):
-        print(f"Source: {source.shape}")
-        print(f"Transformed: {transformed.shape}")
-        print(f"Candidates: {candidates.shape}")
+        # print(f"Source: {source.shape}")
+        # print(f"Transformed: {transformed.shape}")
+        # print(f"Candidates: {candidates.shape}")
 
         # use inner prod on 32-dim feature descriptors to measure similarity 
         # (B x N x 1 x 32) @ (B x N x 32 x C) = (B x N x 1 x C)
@@ -39,7 +39,7 @@ class cpg(nn.Module):
         
         # weighted sum over candidates to get virtual corresponding points
         vcp = torch.mul(1/(torch.sum(w, -2)), wy_sum)    # B x N x 3 
-        print('Virtual corresponding points', vcp.shape)
+        # print('Virtual corresponding points', vcp.shape)
         return vcp 
 
 if __name__ == "__main__":

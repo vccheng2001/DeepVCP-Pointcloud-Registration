@@ -68,19 +68,16 @@ def main():
 
     # begin train 
     model.train()
-    loss_epoch = []
+    loss_epoch_avg = []
     for epoch in range(num_epochs):
         print(f"epoch #{epoch}")
-
+        loss_epoch = []
         running_loss = 0.0
         
         for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
             start_time = time.time()
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
-            print('Source:',  src.shape)
-            print('Target:',  target.shape)
-            print('R', R_gt.shape)
             t_init = torch.zeros(1, 3)
             src_keypts, target_vcp = model(src, target, R_gt, t_init)
             print('src_keypts shape', src_keypts.shape)
@@ -94,20 +91,24 @@ def main():
             optim.step()
             
             running_loss += loss.item()
+            loss_epoch += [loss.item()]
             print("--- %s seconds ---" % (time.time() - start_time))
+            
             if (n_batch + 1) % 200 == 0:
                 print("Epoch: [{}/{}], Batch: {}, Loss: {}".format(
                     epoch, num_epochs, n_batch, loss.item()))
                 running_loss = 0.0
         
         torch.save(model.state_dict(), "epoch_" + str(epoch) + "_model.pt")
-        loss_epoch += [loss.item()]
+        loss_epoch_avg += [sum(loss_epoch) / len(loss_epoch)]
+        with open("training_loss_" + str(epoch) + ".txt", "wb") as fp:   #Pickling
+            pickle.dump(loss_epoch, fp)
+        
+
     # save 
     print("Finished Training")
     torch.save(model.state_dict(), "final_model.pt")
-    with open("training_loss.txt", "wb") as fp:   #Pickling
-        pickle.dump(loss_epoch, fp)
-
+    
     # begin test 
     model.eval()
     loss_test = []
