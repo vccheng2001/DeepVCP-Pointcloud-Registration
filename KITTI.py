@@ -12,13 +12,31 @@ class KITTIDataset(Dataset):
         self.points = []
         self.N = N
         self.files = []
+        self.reflectances = []
 
         path = f"{self.root}/{split}/sequences/00/velodyne/"
         for i, file in enumerate(os.listdir(path)):
             print('file', file)
-            points = np.fromfile(path+file, dtype=np.float32, count=-1).reshape([-1,4])
-            self.points.append(points)
+            
+            src = np.fromfile(path+file, dtype=np.float64, count=-1)
+            print(src.shape, 'sapeee')
+            src = src.reshape([-1,4])
+            num_src = src.shape[0]
+            print("Raw number of points: ", num_src)
+            # randomly subsample N points
+            src_subsample = np.arange(num_src)
+            if num_src > self.N:
+                src_subsample = np.random.choice(num_src, self.N, replace=False)
+            src = src[src_subsample,:]
+
+            # split into xyz, reflectances
+            src_points = src[:, :3]                     
+            src_reflectance = src[:, -1]    
+            src_reflectance = np.expand_dims(src_reflectance,axis=1)
+            
+            self.points.append(src_points)
             self.files.append(file)
+            self.reflectances.append(src_reflectance)
 
         print('# Total clouds', len(self.points))
 
@@ -27,22 +45,13 @@ class KITTIDataset(Dataset):
 
     def __getitem__(self, index):
         # source pointcloud 
-        src = self.points[index]
+        src_points = self.points[index].T                  # 3 x N
+        src_reflectance = self.reflectances[index].T    # 1 x N
         print("Processing file: ", self.files[index])
-        num_src = src.shape[0]          # num points 
-        print('Number of points in raw cloud', num_src)
 
-        # randomly subsample N points
-        src_sel_ind = np.arange(num_src)
-        if num_src > self.N:
-            src_sel_ind = np.random.choice(num_src, self.N, replace=False)
-        src = src[src_sel_ind, :]
-
-        # split into xyz coords, reflectance 
-        src_points= src[:, :3]                   # N x 3
-        src_reflectance = src[:,-1]               # N x 1
         print('src_points', src_points.shape)
-        
+        print('src_reflectance', src_reflectance.shape)
+       
         # data augmentation
         if self.augment:
             # generate random angles for rotation matrices 
@@ -62,7 +71,6 @@ class KITTIDataset(Dataset):
             Rz = RotZ(theta_z)
             R = Rx @ Ry @ Rz
 
-            src_points = src_points.T
             # rotate source point cloud
             target_points = R @ src_points
         
