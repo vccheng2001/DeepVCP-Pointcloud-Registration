@@ -4,6 +4,8 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+import time
+import pickle
 
 from deepVCP import DeepVCP
 
@@ -26,7 +28,7 @@ def svd():
 
 def main():
     # hyper-parameters
-    num_epochs = 50
+    num_epochs = 10
     batch_size = 1
     lr = 0.001
     # loss balancing factor 
@@ -40,8 +42,8 @@ def main():
     # Load ModelNet40 data 
     print('Loading Model40 dataset ...')
 
-    # root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
-    root = 'data/modelnet40_normal_resampled/'
+    root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
+    # root = 'data/modelnet40_normal_resampled/'
     # only use airplane for now
     # shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
 
@@ -66,13 +68,14 @@ def main():
 
     # begin train 
     model.train()
-
+    loss_epoch = []
     for epoch in range(num_epochs):
         print(f"epoch #{epoch}")
 
         running_loss = 0.0
-
+        
         for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
+            start_time = time.time()
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             print('Source:',  src.shape)
@@ -91,16 +94,23 @@ def main():
             optim.step()
             
             running_loss += loss.item()
+            print("--- %s seconds ---" % (time.time() - start_time))
             if (n_batch + 1) % 200 == 0:
                 print("Epoch: [{}/{}], Batch: {}, Loss: {}".format(
                     epoch, num_epochs, n_batch, loss.item()))
                 running_loss = 0.0
+        
+        torch.save(model.state_dict(), "epoch_" + str(epoch) + "_model.pt")
+        loss_epoch += [loss.item()]
     # save 
     print("Finished Training")
-    torch.save(model.state_dict(), "model.pt")
+    torch.save(model.state_dict(), "final_model.pt")
+    with open("training_loss.txt", "wb") as fp:   #Pickling
+        pickle.dump(loss_epoch, fp)
 
     # begin test 
     model.eval()
+    loss_test = []
     with torch.no_grad():
         for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
             # mini batch
@@ -110,6 +120,10 @@ def main():
 
             loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
 
+            loss_test += [loss.item()]
+
+    with open("test_loss.txt", "wb") as fp_test:   #Pickling
+        pickle.dump(loss_test, fp_test)
     print("Test loss:", loss)
 
 if __name__ == "__main__":
