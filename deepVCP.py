@@ -94,4 +94,4 @@ class DeepVCP(nn.Module):
         tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
         print("vcp: ", tgt_vcp.shape)
 
-        return src_keypts, tgt_vcp
+        return src_keypts[:, :, :3], tgt_vcp

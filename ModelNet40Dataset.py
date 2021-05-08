@@ -78,7 +78,7 @@ class ModelNet40Dataset(Dataset):
 
             # rotate source point cloud and normals
             target_points = R @ src_points
-            target_normal = R @ target_points
+            target_normal = R @ src_normals
 
         src_points = torch.from_numpy(src_points) + t
         src_normals = torch.from_numpy(src_normals)

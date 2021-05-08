@@ -12,7 +12,6 @@ from ModelNet40Dataset import ModelNet40Dataset
 from utils import *
 
 from deepVCP_loss import deepVCP_loss
-from deep_feat_extraction import feat_extraction_layer
 
 ''' note: path to dataset is ./data/modelnet40_normal_resampled
     from https://modelnet.cs.princeton.edu/ '''
@@ -41,7 +40,8 @@ def main():
     # Load ModelNet40 data 
     print('Loading Model40 dataset ...')
 
-    root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
+    # root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
+    root = 'data/modelnet40_normal_resampled/'
     # only use airplane for now
     # shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
 

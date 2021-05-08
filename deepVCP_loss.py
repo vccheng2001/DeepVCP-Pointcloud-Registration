@@ -54,7 +54,7 @@ def get_rigid_transform(x, y):
 @return R2: Bx3x3 calculated rotation matrix 
         t2: Bx3xN calculated translation
 '''
-def svd_optimization(x, y_true, R_true, t_true):
+def svd_optimization(x, y_pred, R_true, t_true):
 
     # ground truth y: Bx3xN
     y_true = torch.matmul(R_true, x) + t_true
@@ -100,13 +100,16 @@ Combine L1 loss function with
 '''
 
 def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
+    x = x.permute(0, 2, 1)
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") 
 
     # svd loss
+    print('R_true: ', R_true.shape)
+    print('x', x.shape)
     R, t = svd_optimization(x, y_pred, R_true, t_true)
     print(f'Final Rotation: {R}')    
-    print(f'Final Translation: {t}') 
+    print(f'Final Translation: {t}')
     y_true = torch.matmul(R_true, x) + t_true
     loss2 = torch.mean(torch.sub(y_pred, y_true))
 
