@@ -28,18 +28,17 @@ class KITTIDataset(Dataset):
         # path to pointclouds + poses
         path = f"{self.root}sequences/00/velodyne/"
 
-        for file in os.listdir(path):
-            print(f'\nProcessing file:...', file)
+        print('Number of clouds: ', len(os.listdir(path)))
+        for file in os.listdir(path)[:50]:
+            print(f"Processing {file}")
             # get matching file 
             index = int(file.split(".")[0])
 
             # load point clouds (N x 4)
             src = np.fromfile(path + file, dtype=np.float32, count=-1).reshape([-1,4])
-            print("Raw number of points...: ", src.shape)
 
             # downsample if num points > N
             src = downsample(src, self.N)                           # N x 4
-            print('Num points after downsampling..', src.shape)
 
             # split into xyz, reflectances
             src_points = src[:, :3]                                 # N x 3
@@ -90,7 +89,11 @@ class KITTIDataset(Dataset):
         
         # return source point cloud and transformed (target) point cloud 
         # src, target: B x 3 x N, reflectance : B x 1 x N 
-        return (src_points, target_points, R, t, src_reflectance)
+
+
+        # return (src_points, target_points, R, t, src_reflectance)
+        #
+        return (src_points, target_points, R, t)
 
 if __name__ == "__main__":
     data = KITTIDataset(root='./data/KITTI', N=5000, augment=True, split="train")

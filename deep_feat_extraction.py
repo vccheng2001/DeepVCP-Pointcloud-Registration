@@ -16,6 +16,7 @@ class feat_extraction_layer(nn.Module):
             xyz = pts[:, :3, :]
         else:
             normal = None
+            xyz = pts
         output_xyz, output_pts = self.sa1(xyz, normal)
         output_xyz = output_xyz.permute(0, 2, 1)
         output_pts = output_pts.permute(0, 2, 1)
