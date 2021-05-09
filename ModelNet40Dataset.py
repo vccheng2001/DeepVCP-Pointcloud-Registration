@@ -61,7 +61,7 @@ class ModelNet40Dataset(Dataset):
 
             # generate random translation
             translation_max = 1.0
-            translation_min = 0.0
+            translation_min = -1.0
             t = (translation_max - translation_min) * torch.rand(3, 1) + translation_min
  
             # Generate target point cloud by doing a series of random
