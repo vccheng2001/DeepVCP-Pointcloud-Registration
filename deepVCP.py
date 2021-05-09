@@ -35,7 +35,7 @@ class DeepVCP(nn.Module):
 
         # indexing the src_pts to get keypts: B x K_topk x 6
         src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
-
+        
         # group the keypoints 
         # src_keypts_grouped_pts: B x K_topk x nsample x 6
         # picked_idx: B x K_topk x nsample

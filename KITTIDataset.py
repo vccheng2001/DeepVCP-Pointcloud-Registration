@@ -28,8 +28,7 @@ class KITTIDataset(Dataset):
         # path to pointclouds + poses
         path = f"{self.root}sequences/00/velodyne/"
 
-        print('Number of clouds: ', len(os.listdir(path)))
-        for file in os.listdir(path)[:50]:
+        for file in os.listdir(path)[:100]:
             print(f"Processing {file}")
             # get matching file 
             index = int(file.split(".")[0])
