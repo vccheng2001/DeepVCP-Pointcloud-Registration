@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def main():
     training_loss = []
-    with open('nohup_local.out') as f:
+    with open('modelnet10.txt') as f:
         lines = f.readlines()
         # print(lines, '\n')
         for line in lines:

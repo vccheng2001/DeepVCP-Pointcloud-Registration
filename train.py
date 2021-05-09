@@ -80,8 +80,8 @@ def main():
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             t_init = torch.zeros(1, 3)
             src_keypts, target_vcp = model(src, target, R_gt, t_init)
-            print('src_keypts shape', src_keypts.shape)
-            print('target_vcp shape', target_vcp.shape)
+            # print('src_keypts shape', src_keypts.shape)
+            # print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
             loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)

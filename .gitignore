@@ -143,3 +143,6 @@ cython_debug/
 # text and output files
 *.txt 
 *.out
+
+# pickle files for model
+*.pt

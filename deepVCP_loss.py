@@ -7,11 +7,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 '''
 obtain rotation and translation using single
 value decomposition
-@param x: keypoints of source point cloud 
-       y: corresponding transformed points 
+@param x: Bx3xN keypoints of source point cloud 
+       y: Bx3xN corresponding transformed points 
 '''
 def get_rigid_transform(x, y):
-    B, N, _ = x.shape
+    B, _, N = x.shape
     # centroid of each point cloud: B x 3 x 1 
     centroid_x = torch.mean(x, dim=2, keepdim=True) 
     centroid_y = torch.mean(y, dim=2,  keepdim=True)
@@ -56,10 +56,11 @@ def get_rigid_transform(x, y):
 '''
 def svd_optimization(x, y_pred, R_true, t_true):
 
-    # ground truth y: Bx3xN
+    # ground truth y_true: Bx3xN
     y_true = torch.matmul(R_true, x) + t_true
-    y_pred = y_pred.double().permute(0, 2, 1)
-    B, N, _ = y_pred.shape
+    y_pred = y_pred.double()
+    B, _, N = y_pred.shape
+
     # first SVD to get rotation, translation
     R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
 
@@ -85,14 +86,15 @@ def svd_optimization(x, y_pred, R_true, t_true):
    
     # predicted y points based on R2, t2   
     y_pred2 = torch.matmul(R2, x1) + t2
-    return R2, t2 
+
+    return R2, t2 , x1, y_pred2
 
 
    
 '''
 Combine L1 loss function with 
-@param  x: Bx3xN source points 
-        y_pred: Bx3xN transformed source points
+@param  x: BxNx3 source points 
+        y_pred: BxNx3 transformed source points
         R_true: Bx3x3 ground truth rotation
         t_true: Bx3xN ground truth translation 
         alpha:  loss balancing factor
@@ -102,17 +104,19 @@ Combine L1 loss function with
 
 def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     x = x.permute(0, 2, 1)
+    y_pred = y_pred.permute(0, 2, 1)
+
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") 
 
     # svd loss
-    R, t = svd_optimization(x, y_pred, R_true, t_true)
-    y_true = torch.matmul(R_true, x) + t_true
-    y_true = y_true.permute(0, 2, 1)
-    loss2 = torch.abs(torch.mean(torch.sub(y_pred, y_true)))
+    R, t, x_inliers, y_pred_optimized = svd_optimization(x, y_pred, R_true, t_true)
+    y_true_inliers = torch.matmul(R_true, x_inliers) + t_true
+
+    loss2 = torch.abs(torch.mean(torch.sub(y_pred_optimized, y_true_inliers)))
 
     # combine loss
-    loss = alpha * loss1(y_true, y_pred) + (1 - alpha) * loss2 
+    loss = alpha * loss1(y_true_inliers, y_pred_optimized) + (1 - alpha) * loss2 
     print(f"Loss: {loss}")
     return loss
 
