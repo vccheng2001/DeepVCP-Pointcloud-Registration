@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 # setup train 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
+parser.add_argument('-r', '--retrain', action = "store", type = str, help='specify a saved model to retrain on')
 args = parser.parse_args()
 
 def main():
@@ -57,15 +58,18 @@ def main():
     print('Train dataset size: ', num_train)
     print('Test dataset size: ', num_test)
 
-    use_normal = False if dataset == "kitti" else True
+    use_normal = False if args.dataset == "kitti" else True
 
     # Initialize the model
     model = DeepVCP(use_normal=use_normal) 
     model.to(device)
-    
+
     # Retrain
-    if dataset == "kitti":
-        model.load_state_dict(torch.load("final_model.pt"))
+    if args.retrain:
+        print("Retrain on ", args.retrain)
+        model.load_state_dict(torch.load(args.retrain))
+    else:
+        print("No retrain")
 
     # Define the optimizer
     optim = Adam(model.parameters(), lr=lr)
@@ -78,7 +82,7 @@ def main():
         loss_epoch = []
         running_loss = 0.0
         
-        for n_batch, (src, target, R_gt, t_gt, ) in enumerate(test_loader):
+        for n_batch, (src, target, R_gt, t_gt, ) in enumerate(train_loader):
             start_time = time.time()
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
@@ -127,7 +131,7 @@ def main():
     model.eval()
     loss_test = []
     with torch.no_grad():
-        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
+        for n_batch, (src, target, R_gt, t_gt) in enumerate(test_loader):
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             t_init = torch.zeros(1, 3)
@@ -152,8 +156,9 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset",  help="dataset (kitti or modelnet)")
+    parser.add_argument("-d", "--dataset", nargs='?', required=False, help="dataset (specify modelnet or kitti)")
+    parser.add_argument("-r", "--retrain", nargs='?', required=False, help="specify a saved model to retrain on")
     args = parser.parse_args()
-    dataset = args.dataset 
+    print(args)
 
     main()
