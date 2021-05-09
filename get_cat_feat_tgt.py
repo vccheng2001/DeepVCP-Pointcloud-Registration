@@ -52,7 +52,7 @@ class Get_Cat_Feat_Tgt(nn.Module):
         # dist_normalize: (B x (K_topk x C) x num_feat)
         dist_sum = torch.sum(dist, dim = 2, keepdim = True, dtype = float)
         dist_normalize = dist / dist_sum
-        print("dist_normalize: ", dist_normalize.shape)
+        #print("dist_normalize: ", dist_normalize.shape)
 
         # stacking normalized distance into a map for deep features
         # feat_weight_map: (B x (K_topk x C) x k_nn x num_feat) 

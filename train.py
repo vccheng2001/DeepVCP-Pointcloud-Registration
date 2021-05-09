@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 import time
 import pickle
-
+import argparse 
 from utils import *
 
 from deepVCP import DeepVCP
@@ -39,15 +39,13 @@ def main():
     print(f"device: {device}")
 
     # dataset 
-    print(f'Loading {dataset} dataset ...')
     if args.dataset == "modelnet":
         root = 'data/modelnet40_normal_resampled/'
-        category = "airplane"
         shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
-        train_data= ModelNet40Dataset(root=root, category=category, split='train')
-        test_data = ModelNet40Dataset(root=root, category=category, split='test')
+        train_data= ModelNet40Dataset(root=root, augment=True, split='train')
+        test_data = ModelNet40Dataset(root=root, augment=True,  split='test')
     else:
-        root = 'data/dataset/'
+        root = '/data/dataset/'
         train_data= KITTIDataset(root=root, N=5000, augment=True, split="train")
         test_data = KITTIDataset(root=root, N=5000, augment=True, split="test")
 
@@ -61,9 +59,10 @@ def main():
     print('Train dataset size: ', num_train)
     print('Test dataset size: ', num_test)
 
+    use_normal = False if dataset == "kitti" else True
 
     # Initialize the model
-    model = DeepVCP() 
+    model = DeepVCP(use_normal=use_normal) 
     model.to(device)
 
     # Define the optimizer
@@ -77,20 +76,20 @@ def main():
 
         running_loss = 0.0
         
-        for n_batch, (src, target, R_gt, t_gt) in enumerate(train_loader):
+        for n_batch, (src, target, R_gt, t_gt, ) in enumerate(train_loader):
             start_time = time.time()
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
-            print('Source:',  src.shape)
-            print('Target:',  target.shape)
-            print('R', R_gt.shape)
+            #print('Source:',  src.shape)
+            #print('Target:',  target.shape)
+            #print('R', R_gt.shape)
             t_init = torch.zeros(1, 3)
             src_keypts, target_vcp = model(src, target, R_gt, t_init)
-            print('src_keypts shape', src_keypts.shape)
-            print('target_vcp shape', target_vcp.shape)
+            #print('src_keypts shape', src_keypts.shape)
+            #print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
+            loss = deepVCP_loss(src_keypts.double(), target_vcp, R_gt, t_gt, alpha=0.5)
             # backward pass
             loss.backward()
             # update parameters 

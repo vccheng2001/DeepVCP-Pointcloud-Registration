@@ -22,8 +22,6 @@ def get_rigid_transform(x, y):
 
     # covariance matrix H
     # (B x 3 x N) * (B x N x 3) => H: B x 3 x 3
-    print(dist_x.dtype)
-    print(dist_y.dtype)
     H = torch.matmul(dist_x, dist_y.permute(0,2,1))
 
     # Singular value decomposition of covariance matrix H = USV^T 
@@ -57,12 +55,9 @@ def get_rigid_transform(x, y):
         t2: Bx3xN calculated translation
 '''
 def svd_optimization(x, y_pred, R_true, t_true):
-
     # ground truth y: Bx3xN
     y_true = torch.matmul(R_true, x) + t_true
     y_pred = y_pred.double().permute(0, 2, 1)
-    print("y_pred", y_pred.shape)
-    print("x", x.dtype)
     B, N, _ = y_pred.shape
     # first SVD to get rotation, translation
     R1, t1 = get_rigid_transform(x, y_pred) # R: Bx3x3, t: Bx3x1
@@ -105,7 +100,7 @@ Combine L1 loss function with
 '''
 
 def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
-    x = x.permute(0, 2, 1)
+    x = x.permute(0, 2, 1).double()
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") 
 
@@ -113,9 +108,8 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
  
     R, t = svd_optimization(x, y_pred, R_true, t_true)
     y_true = torch.matmul(R_true, x) + t_true
-    print("y_pred", y_pred.shape)
-    print("y_true", y_true.shape)
     y_true = y_true.permute(0, 2, 1)
+    
     loss2 = torch.abs(torch.mean(torch.sub(y_pred, y_true)))
 
     # combine loss
@@ -128,10 +122,10 @@ if __name__ == "__main__":
     B = 2
     alpha = 0.5
     torch.manual_seed(0)
-    print(f'Using batch size: {B}, number of keypoints: {N}')
+    # print(f'Using batch size: {B}, number of keypoints: {N}')
     # original source keypoints: BxNx3
     x = torch.randn(B,3,N).to(device) 
-    print('x',x)    
+    # print('x',x)    
     # output predicted points from previous layers of deepVCP
     y_pred = torch.randn(B,3,N).to(device)
 
@@ -143,8 +137,8 @@ if __name__ == "__main__":
     R_true = R_true.repeat(B,1,1).to(device)
     t_true = torch.zeros(B,3,1).repeat(1,1,N).to(device)
 
-    print("Ground truth R:", R_true)
-    print("Ground truth t:", t_true)
+    # print("Ground truth R:", R_true)
+    # print("Ground truth t:", t_true)
 
 
     # get deepVCP loss
