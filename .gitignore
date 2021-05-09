@@ -1,4 +1,11 @@
-data/modelnet40_normal_resampled/airplane*
+*.swp
+*.swo
+data/*
+.DS_Store
+py
+data/
+
+*.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

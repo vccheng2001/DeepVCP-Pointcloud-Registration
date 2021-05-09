@@ -1,6 +1,6 @@
 import numpy as np
+import matplotlib 
 import matplotlib.pyplot as plt
-
 def main():
     training_loss = []
     with open('modelnet10.txt') as f:
