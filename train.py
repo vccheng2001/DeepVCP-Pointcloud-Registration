@@ -38,8 +38,8 @@ def main():
 
     # dataset 
     if args.dataset == "modelnet":
-        root = 'data/modelnet40_normal_resampled/'
-        shape_names = np.loadtxt(root+"modelnet40_shape_names.txt", dtype="str")
+        root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
+        shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
         train_data= ModelNet40Dataset(root=root, augment=True, split='train')
         test_data = ModelNet40Dataset(root=root, augment=True,  split='test')
     else:
@@ -64,7 +64,8 @@ def main():
     model.to(device)
     
     # Retrain
-    model.load_state_dict(torch.load("final_model.pt"))
+    if dataset == "kitti":
+        model.load_state_dict(torch.load("final_model.pt"))
 
     # Define the optimizer
     optim = Adam(model.parameters(), lr=lr)
@@ -77,7 +78,7 @@ def main():
         loss_epoch = []
         running_loss = 0.0
         
-        for n_batch, (src, target, R_gt, t_gt, ) in enumerate(train_loader):
+        for n_batch, (src, target, R_gt, t_gt, ) in enumerate(test_loader):
             start_time = time.time()
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
