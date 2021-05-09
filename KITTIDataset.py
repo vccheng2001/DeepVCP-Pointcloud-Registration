@@ -8,7 +8,7 @@ Downsample point cloud to N points
            N: number of points desired
 @returns src: sampled point cloud
 '''
-def downsample(src, N=5000):
+def downsample(src, N):
     num_src = src.shape[0]
     src_downsample_indices = np.arange(num_src)
     if num_src > N:
@@ -16,7 +16,7 @@ def downsample(src, N=5000):
     return src[src_downsample_indices,:]
 
 class KITTIDataset(Dataset):
-    def __init__(self, root, augment=True, rotate=True, split="train", N=5000):
+    def __init__(self, root, augment=True, rotate=True, split="train", N=10000):
         self.root = root
         self.split = split
         self.augment = augment
@@ -26,25 +26,27 @@ class KITTIDataset(Dataset):
         self.reflectances = []
 
         # path to pointclouds + poses
-        path = f"{self.root}sequences/00/velodyne/"
+        path = f"{self.root}sequences/"
 
-        for file in os.listdir(path)[:100]:
-            print(f"Processing {file}")
-            # get matching file 
-            index = int(file.split(".")[0])
+        for seq in ["00"]:
+            path = f"{self.root}sequences/{seq}/velodyne/"
+            for file in os.listdir(path)[:50]:
+                print(f"Processing {file}")
+                # get matching file 
+                index = int(file.split(".")[0])
 
-            # load point clouds (N x 4)
-            src = np.fromfile(path + file, dtype=np.float32, count=-1).reshape([-1,4])
+                # load point clouds (N x 4)
+                src = np.fromfile(path + file, dtype=np.float32, count=-1).reshape([-1,4])
 
-            # downsample if num points > N
-            src = downsample(src, self.N)                           # N x 4
+                # downsample if num points > N
+                src = downsample(src, self.N)                           # N x 4
 
-            # split into xyz, reflectances
-            src_points = src[:, :3]                                 # N x 3
-            src_reflectance = np.expand_dims(src[:,-1], axis=1)     # N x 1
-            self.files.append(file)
-            self.points.append(src_points)
-            self.reflectances.append(src_reflectance)
+                # split into xyz, reflectances
+                src_points = src[:, :3]                                 # N x 3
+                src_reflectance = np.expand_dims(src[:,-1], axis=1)     # N x 1
+                self.files.append(file)
+                self.points.append(src_points)
+                self.reflectances.append(src_reflectance)
 
         print('# Total clouds', len(self.points))
 
@@ -95,8 +97,8 @@ class KITTIDataset(Dataset):
         return (src_points, target_points, R, t)
 
 if __name__ == "__main__":
-    data = KITTIDataset(root='./data/KITTI', N=5000, augment=True, split="train")
-    DataLoader = torch.utils.data.DataLoader(data, batch_size=16, shuffle=False) 
+    data = KITTIDataset(root='./data/KITTI', N=10000, augment=True, split="train")
+    DataLoader = torch.utils.data.DataLoader(data, batch_size=1, shuffle=False) 
     for src, target, R, t, src_reflectance in DataLoader:
         print('Source:',  src.shape)                # B x 3 x N 
         print('Target:',  target.shape)             # B x 3 x N

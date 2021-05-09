@@ -79,7 +79,7 @@ class DeepVCP(nn.Module):
         # group the tgt_pts to feed into DFE layer
         tgt_gcf = Get_Cat_Feat_Tgt()
         tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
-        print("tgt_keyfeats_cat", tgt_keyfeats_cat.shape)
+        # print("tgt_keyfeats_cat", tgt_keyfeats_cat.shape)
 
         # deep feature embedding
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
@@ -90,6 +90,6 @@ class DeepVCP(nn.Module):
         tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
         
         tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
-        print("vcp: ", tgt_vcp.shape)
+        # print("vcp: ", tgt_vcp.shape)
 
         return src_keypts[:, :, :3], tgt_vcp

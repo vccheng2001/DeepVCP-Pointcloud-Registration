@@ -110,10 +110,12 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     y_true = torch.matmul(R_true, x) + t_true
     y_true = y_true.permute(0, 2, 1)
     
-    loss2 = torch.abs(torch.mean(torch.sub(y_pred, y_true)))
+    y_pred1 = torch.matmul(R, x) + t
+    y_pred1 = y_pred1.permute(0, 2, 1)
+    loss2 = torch.abs(torch.mean(torch.sub(y_pred1, y_true)))
 
     # combine loss
-    loss = alpha * loss1(y_true, y_pred) + (1 - alpha) * loss2 
+    loss = alpha * loss1(y_true, y_pred1) + (1 - alpha) * loss2 
     return loss
 
 if __name__ == "__main__":
