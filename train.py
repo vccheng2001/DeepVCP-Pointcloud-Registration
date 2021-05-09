@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from scipy.spatial.transform import Rotation as R
 import time
 import pickle
 
@@ -84,7 +85,18 @@ def main():
             # print('target_vcp shape', target_vcp.shape)
             # zero gradient 
             optim.zero_grad()
-            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
+            loss, R_pred, t_pred = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
+
+            # error metric for rigid body transformation
+            r_pred = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_pred_arr = torch.tensor(r_pred.as_euler('xyz', degrees=True)).reshape(1, 3)
+            r_gt = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
+            pdist = nn.PairwiseDistance(p = 2)
+            
+            print("rotation error: ", pdist(r_pred_arr, r_gt_arr).item())
+            print("translation error: ", pdist(t_pred, t_gt).item())
+
             # backward pass
             loss.backward()
             # update parameters 
@@ -119,7 +131,16 @@ def main():
             t_init = torch.zeros(1, 3)
             src_keypts, target_vcp = model.test(src, target, R_gt, t_init)
 
-            loss = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
+            loss, R_pred, t_pred = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
+            # error metric for rigid body transformation
+            r_pred = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_pred_arr = torch.tensor(r_pred.as_euler('xyz', degrees=True)).reshape(1, 3)
+            r_gt = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
+            pdist = nn.PairwiseDistance(p = 2)
+            
+            print("rotation error test: ", pdist(r_pred_arr, r_gt_arr).item())
+            print("translation error test: ", pdist(t_pred, t_gt).item())
 
             loss_test += [loss.item()]
 

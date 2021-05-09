@@ -118,7 +118,7 @@ def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
     # combine loss
     loss = alpha * loss1(y_true_inliers, y_pred_optimized) + (1 - alpha) * loss2 
     print(f"Loss: {loss}")
-    return loss
+    return loss, R, t
 
 if __name__ == "__main__":
     THRESHOLD = 5
