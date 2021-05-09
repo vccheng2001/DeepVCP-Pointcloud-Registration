@@ -15,11 +15,8 @@ from KITTIDataset import KITTIDataset
 from deepVCP_loss import deepVCP_loss
 
 import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-matplotlib.use("Agg")
-
-''' note: path to dataset is ./data/modelnet40_normal_resampled
-    from https://modelnet.cs.princeton.edu/ '''
 
 # setup train 
 parser = argparse.ArgumentParser()

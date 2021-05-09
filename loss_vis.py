@@ -1,6 +1,6 @@
 import numpy as np
+import matplotlib 
 import matplotlib.pyplot as plt
-
 def main():
     training_loss = []
     with open('nohup_local.out') as f:
