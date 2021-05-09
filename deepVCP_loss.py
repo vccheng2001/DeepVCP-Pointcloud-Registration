@@ -103,8 +103,8 @@ Combine L1 loss function with
 '''
 
 def deepVCP_loss(x, y_pred, R_true, t_true, alpha):
-    x = x.permute(0, 2, 1)
-    y_pred = y_pred.permute(0, 2, 1)
+    x = x.permute(0, 2, 1).double()
+    y_pred = y_pred.permute(0, 2, 1).double()
 
     # l1 loss
     loss1 = nn.L1Loss(reduction="mean") 
@@ -126,10 +126,10 @@ if __name__ == "__main__":
     B = 2
     alpha = 0.5
     torch.manual_seed(0)
-    print(f'Using batch size: {B}, number of keypoints: {N}')
+    # print(f'Using batch size: {B}, number of keypoints: {N}')
     # original source keypoints: BxNx3
     x = torch.randn(B,3,N).to(device) 
-    print('x',x)    
+    # print('x',x)    
     # output predicted points from previous layers of deepVCP
     y_pred = torch.randn(B,3,N).to(device)
 
@@ -141,8 +141,8 @@ if __name__ == "__main__":
     R_true = R_true.repeat(B,1,1).to(device)
     t_true = torch.zeros(B,3,1).repeat(1,1,N).to(device)
 
-    print("Ground truth R:", R_true)
-    print("Ground truth t:", t_true)
+    # print("Ground truth R:", R_true)
+    # print("Ground truth t:", t_true)
 
 
     # get deepVCP loss

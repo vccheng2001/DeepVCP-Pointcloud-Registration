@@ -51,9 +51,7 @@ class ModelNet40Dataset(Dataset):
         # source pointcloud
         src_points, src_normals, src_file =  self.points[index].T, self.normals[index].T, self.labels[index]
         
-        print('Source file name:', src_file)
-        print('pts', src_points.shape)
-        print('norm', src_normals.shape)
+        print('Processing file:', src_file)
         # Augment by rotating x, z axes
         if self.augment:
             # generate random angles for rotation matrices 
@@ -74,12 +72,12 @@ class ModelNet40Dataset(Dataset):
             R = Rx @ Ry @ Rz
 
             # rotate source point cloud and normals
-            target_points = R @ src_points
-            target_normal = R @ src_normals
+            target_points = R @ src_points + t
+            target_normal = R @ src_normals + t
 
         src_points = torch.from_numpy(src_points)
         src_normals = torch.from_numpy(src_normals)
-        target_points = torch.from_numpy(target_points) + t
+        target_points = torch.from_numpy(target_points) 
         target_normal = torch.from_numpy(target_normal)
 
         R = torch.from_numpy(R)

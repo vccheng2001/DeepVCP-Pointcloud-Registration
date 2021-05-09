@@ -1,4 +1,7 @@
-data/modelnet40_normal_resampled/airplane*
+*.swp
+data/*
+
+*.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -143,6 +146,9 @@ cython_debug/
 # text and output files
 *.txt 
 *.out
+<<<<<<< HEAD
 
 # pickle files for model
 *.pt
+=======
+>>>>>>> viv

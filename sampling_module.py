@@ -47,7 +47,7 @@ class Get_Cat_Feat_Tgt(nn.Module):
         query_pts = candidate_pts_flat
         ref_pts = tgt_pts_xyz.repeat(B, 1, 1)
         dist, idx = knn(ref_pts.cuda(), query_pts.cuda())
-        print("idx: ", idx.shape)
+        #print("idx: ", idx.shape)
 
         # normalize the deep features based on distance
         dist_sum = torch.sum(dist, dim = 2, keepdim = True, dtype = float)

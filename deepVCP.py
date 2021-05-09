@@ -13,9 +13,9 @@ from cpg import cpg
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class DeepVCP(nn.Module):
-    def __init__(self): 
+    def __init__(self, use_normal): 
         super(DeepVCP, self).__init__()
-        self.FE1 = feat_extraction_layer()
+        self.FE1 = feat_extraction_layer(use_normal=use_normal)
         self.WL = weighting_layer()
         self.DFE = feat_embedding_layer()
         self.cpg = cpg()
@@ -23,7 +23,7 @@ class DeepVCP(nn.Module):
     def forward(self, src_pts, tgt_pts, R_init, t_init):
         B, _, _ = src_pts.shape
 
-        # deep features exrtacted from FE layer: B x N x 32
+        # deep features extracted from FE layer: B x N x 32
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
 
         # obtain the top k indices for src point clouds
@@ -35,7 +35,7 @@ class DeepVCP(nn.Module):
 
         # indexing the src_pts to get keypts: B x K_topk x 6
         src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
-
+        
         # group the keypoints 
         # src_keypts_grouped_pts: B x K_topk x nsample x 6
         # picked_idx: B x K_topk x nsample
@@ -72,7 +72,7 @@ class DeepVCP(nn.Module):
         R_init_rep = R_init.repeat(B, 1, 1)
         src_keypts_T = src_keypts.permute(0, 2, 1)
         src_keypts_T = src_keypts_T[:, :3, :]
-        src_transformed = torch.matmul(R_init_rep, src_keypts_T)
+        src_transformed = torch.matmul(R_init_rep, src_keypts_T.double())
         src_transformed_T = src_transformed.permute(0, 2, 1)
         candidate_pts = voxelize(src_transformed_T, r, s)
 
