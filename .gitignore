@@ -150,9 +150,6 @@ cython_debug/
 # text and output files
 *.txt 
 *.out
-<<<<<<< HEAD
 
 # pickle files for model
 *.pt
-=======
->>>>>>> viv
