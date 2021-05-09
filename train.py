@@ -43,8 +43,8 @@ def main():
         test_data = ModelNet40Dataset(root=root, augment=True,  split='test')
     else:
         root = '/data/dataset/'
-        train_data= KITTIDataset(root=root, N=5000, augment=True, split="train")
-        test_data = KITTIDataset(root=root, N=5000, augment=True, split="test")
+        train_data= KITTIDataset(root=root, N=10000, augment=True, split="train")
+        test_data = KITTIDataset(root=root, N=10000, augment=True, split="test")
 
 
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
@@ -61,6 +61,9 @@ def main():
     # Initialize the model
     model = DeepVCP(use_normal=use_normal) 
     model.to(device)
+    
+    # Retrain
+    model.load_state_dict(torch.load("final_model.pt"))
 
     # Define the optimizer
     optim = Adam(model.parameters(), lr=lr)
@@ -94,7 +97,7 @@ def main():
             
             running_loss += loss.item()
             print("--- %s seconds ---" % (time.time() - start_time))
-            if (n_batch + 1) % 200 == 0:
+            if (n_batch + 1) % 5 == 0:
                 print("Epoch: [{}/{}], Batch: {}, Loss: {}".format(
                     epoch, num_epochs, n_batch, loss.item()))
                 running_loss = 0.0
