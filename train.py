@@ -20,13 +20,16 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
-# setup train 
+# setup args
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
 parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
 parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
 
 args = parser.parse_args()
+dataset = args.dataset
+retrain_path = args.retrain_path
+model_path = args.model_path
 
 def main():
     # hyper-parameters
@@ -34,17 +37,19 @@ def main():
     batch_size = 1
     init_lr = 0.01
     decay_factor = 0.7
+    patience = 1
     # loss balancing factor 
     alpha = 0.5
 
-    print(f"Params: ep: {num_epochs}, batch: {batch_size}, init_lr:{init_lr}, decay:{decay_factor},alpha:{alpha}")
+    print(f"Params: epochs: {num_epochs}, batch: {batch_size}, init_lr: {init_lr},\
+            decay factor: {decay_factor}, alpha: {alpha}\n")
 
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"device: {device}")
 
     # dataset 
-    if args.dataset == "modelnet":
+    if dataset == "modelnet":
         root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
         train_data= ModelNet40Dataset(root=root, augment=True, split='train')
@@ -71,15 +76,15 @@ def main():
     model.to(device)
 
     # Retrain
-    if args.retrain_path:
-        print("Retrain on ", args.retrain_path)
-        model.load_state_dict(torch.load(args.retrain_path))
+    if retrain_path:
+        print("Retrain on ", retrain_path)
+        model.load_state_dict(torch.load(retrain_path))
     else:
         print("No retrain")
 
     # Define the optimizer
     optim = Adam(model.parameters(), lr=init_lr)
-    scheduler = ReduceLROnPlateau(optim, 'min',  factor=decay_factor, patience=1)
+    scheduler = ReduceLROnPlateau(optim, 'min',  factor=decay_factor, patience=patience)
 
     # begin train 
     model.train()
@@ -127,13 +132,13 @@ def main():
         
         torch.save(model.state_dict(), "epoch_" + str(epoch) + "_model.pt")
         loss_epoch_avg += [sum(loss_epoch) / len(loss_epoch)]
-        with open("training_loss_v1_" + str(epoch) + ".txt", "wb") as fp:   #Pickling
+        with open("training_loss_" + str(epoch) + ".txt", "wb") as fp:   #Pickling
             pickle.dump(loss_epoch, fp)
         
 
     # save 
     print("Finished Training")
-    torch.save(model.state_dict(), args.model_path)
+    torch.save(model.state_dict(), model_path)
     
     # begin test 
     model.eval()
