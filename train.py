@@ -35,14 +35,11 @@ def main():
     # hyper-parameters
     num_epochs = 10
     batch_size = 1
-    init_lr = 0.01
-    decay_factor = 0.7
-    patience = 1
+    lr = 0.001
     # loss balancing factor 
     alpha = 0.5
 
-    print(f"Params: epochs: {num_epochs}, batch: {batch_size}, init_lr: {init_lr},\
-            decay factor: {decay_factor}, alpha: {alpha}\n")
+    print(f"Params: epochs: {num_epochs}, batch: {batch_size}, lr: {lr}, alpha: {alpha}\n")
 
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -83,8 +80,7 @@ def main():
         print("No retrain")
 
     # Define the optimizer
-    optim = Adam(model.parameters(), lr=init_lr)
-    scheduler = ReduceLROnPlateau(optim, 'min',  factor=decay_factor, patience=patience)
+    optim = Adam(model.parameters(), lr=lr)
 
     # begin train 
     model.train()
@@ -120,7 +116,6 @@ def main():
             loss.backward()
             # update parameters 
             optim.step()
-            scheduler.step(loss)
 
             running_loss += loss.item()
             loss_epoch += [loss.item()]
