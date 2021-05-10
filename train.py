@@ -23,7 +23,9 @@ from matplotlib import pyplot as plt
 # setup train 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
-parser.add_argument('-r', '--retrain', action = "store", type = str, help='specify a saved model to retrain on')
+parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
+parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
+
 args = parser.parse_args()
 
 def main():
@@ -34,6 +36,8 @@ def main():
     decay_factor = 0.7
     # loss balancing factor 
     alpha = 0.5
+
+    print(f"Params: ep: {num_epochs}, batch: {batch_size}, init_lr:{init_lr}, decay:{decay_factor},alpha:{alpha}")
 
     # check if cuda is available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -67,9 +71,9 @@ def main():
     model.to(device)
 
     # Retrain
-    if args.retrain:
-        print("Retrain on ", args.retrain)
-        model.load_state_dict(torch.load(args.retrain))
+    if args.retrain_path:
+        print("Retrain on ", args.retrain_path)
+        model.load_state_dict(torch.load(args.retrain_path))
     else:
         print("No retrain")
 
@@ -123,13 +127,13 @@ def main():
         
         torch.save(model.state_dict(), "epoch_" + str(epoch) + "_model.pt")
         loss_epoch_avg += [sum(loss_epoch) / len(loss_epoch)]
-        with open("training_loss_" + str(epoch) + ".txt", "wb") as fp:   #Pickling
+        with open("training_loss_v1_" + str(epoch) + ".txt", "wb") as fp:   #Pickling
             pickle.dump(loss_epoch, fp)
         
 
     # save 
     print("Finished Training")
-    torch.save(model.state_dict(), "final_model.pt")
+    torch.save(model.state_dict(), args.model_path)
     
     # begin test 
     model.eval()
@@ -159,10 +163,4 @@ def main():
     print("Test loss:", loss)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", nargs='?', required=False, help="dataset (specify modelnet or kitti)")
-    parser.add_argument("-r", "--retrain", nargs='?', required=False, help="specify a saved model to retrain on")
-    args = parser.parse_args()
-    print(args)
-
     main()
