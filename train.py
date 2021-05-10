@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from scipy.spatial.transform import Rotation as R
 import time
 import pickle
@@ -29,7 +30,8 @@ def main():
     # hyper-parameters
     num_epochs = 10
     batch_size = 1
-    lr = 0.001
+    init_lr = 0.01
+    decay_factor = 0.7
     # loss balancing factor 
     alpha = 0.5
 
@@ -72,7 +74,8 @@ def main():
         print("No retrain")
 
     # Define the optimizer
-    optim = Adam(model.parameters(), lr=lr)
+    optim = Adam(model.parameters(), lr=init_lr)
+    scheduler = ReduceLROnPlateau(optim, 'min',  factor=decay_factor, patience=1)
 
     # begin train 
     model.train()
@@ -108,7 +111,8 @@ def main():
             loss.backward()
             # update parameters 
             optim.step()
-            
+            scheduler.step(loss)
+
             running_loss += loss.item()
             loss_epoch += [loss.item()]
             print("--- %s seconds ---" % (time.time() - start_time))
