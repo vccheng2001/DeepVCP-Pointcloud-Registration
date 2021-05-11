@@ -66,7 +66,7 @@ def main():
     print('Train dataset size: ', num_train)
     print('Test dataset size: ', num_test)
 
-    use_normal = False if args.dataset == "kitti" else True
+    use_normal = False if dataset == "kitti" else True
 
     # Initialize the model
     model = DeepVCP(use_normal=use_normal) 
