@@ -88,6 +88,6 @@ class DeepVCP(nn.Module):
         src_dfe_feat = src_dfe_feat.unsqueeze(2)
         tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
         
-        tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts)
+        tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts, r, s)
 
         return src_keypts[:, :, :3], tgt_vcp

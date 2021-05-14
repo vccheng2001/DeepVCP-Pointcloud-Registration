@@ -59,9 +59,9 @@ def voxelize_point(point, search_radius, voxel_len):
     # list of candidates 
     candidates = []
     # create 3D grid for each of x,y,z
-    xrange = torch.arange(search_min.values[0], search_max.values[0], voxel_len)
-    yrange = torch.arange(search_min.values[1], search_max.values[1], voxel_len)
-    zrange = torch.arange(search_min.values[2], search_max.values[2], voxel_len)
+    xrange = torch.arange(search_min.values[0]-voxel_len/2, search_max.values[0], voxel_len)
+    yrange = torch.arange(search_min.values[1]-voxel_len/2, search_max.values[1], voxel_len)
+    zrange = torch.arange(search_min.values[2]-voxel_len/2, search_max.values[2], voxel_len)
 
     # create 3d mesh grid 
     xgrid, ygrid, zgrid = torch.meshgrid(xrange, yrange, zrange)
@@ -72,10 +72,10 @@ def voxelize_point(point, search_radius, voxel_len):
 
     # reject points that lie outside of sphere (radius > search radius)
     for coord in grid3D.reshape(-1, grid3D.shape[-1]):
-        dist = euclidean_dist(coord+voxel_len/2, bbox_center)
-        if dist <= search_radius: 
-            candidates.append(coord)
-    
+        # dist = euclidean_dist(coord+voxel_len/2, bbox_center)
+        # if dist <= search_radius: 
+        candidates.append(coord)
+   
     candidates = torch.stack((candidates))
 
     # visualize points 

@@ -28,7 +28,7 @@ class KITTIDataset(Dataset):
         # path to pointclouds + poses
         path = f"{self.root}sequences/"
 
-        for seq in ["00","01","02","03"]:
+        for seq in ["00", "01", "02", "03"]:
             path = f"{self.root}sequences/{seq}/velodyne/"
             for file in os.listdir(path)[:50]:
                 print(f"Processing {file}")
@@ -59,7 +59,7 @@ class KITTIDataset(Dataset):
         # source pointcloud 
         src_points = self.points[index].T                   # 3 x N
         src_reflectance = self.reflectances[index].T        # 1 x N
-        print("Loading file: ", self.files[index])
+        # print("Loading file: ", self.files[index])
 
         # data augmentation
         if self.augment:
