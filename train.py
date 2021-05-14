@@ -105,7 +105,7 @@ def main():
             # error metric for rigid body transformation
             r_pred = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
             r_pred_arr = torch.tensor(r_pred.as_euler('xyz', degrees=True)).reshape(1, 3)
-            r_gt = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_gt = R.from_matrix(R_gt.squeeze(0).cpu().detach().numpy())
             r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
             pdist = nn.PairwiseDistance(p = 2)
             
