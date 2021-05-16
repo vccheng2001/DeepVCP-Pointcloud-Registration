@@ -23,6 +23,7 @@ from matplotlib import pyplot as plt
 # setup args
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
+parser.add_argument('-f', '--full_dataset', default="full", help='specify to train on full or partial dataset')
 parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
 parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
 
@@ -30,6 +31,7 @@ args = parser.parse_args()
 dataset = args.dataset
 retrain_path = args.retrain_path
 model_path = args.model_path
+full_dataset = True if args.full_dataset == "full" else False
 
 def main():
     # hyper-parameters
@@ -49,9 +51,9 @@ def main():
     if dataset == "modelnet":
         root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
-        train_data= ModelNet40Dataset(root=root, augment=True, split='train')
-        test_data = ModelNet40Dataset(root=root, augment=True,  split='test')
-    else:
+        train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset, split='train')
+        test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset,  split='test')
+    elif dataset == "kitti":
         root = '/data/dataset/'
         train_data= KITTIDataset(root=root, N=10000, augment=True, split="train")
         test_data = KITTIDataset(root=root, N=10000, augment=True, split="test")
@@ -143,7 +145,7 @@ def main():
             # mini batch
             src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             t_init = torch.zeros(1, 3)
-            src_keypts, target_vcp = model.test(src, target, R_gt, t_init)
+            src_keypts, target_vcp = model(src, target, R_gt, t_init)
 
             loss, R_pred, t_pred = deepVCP_loss(src_keypts, target_vcp, R_gt, t_gt, alpha=0.5)
             # error metric for rigid body transformation

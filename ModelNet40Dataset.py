@@ -10,7 +10,7 @@ from utils import *
 
 
 class ModelNet40Dataset(Dataset):
-    def __init__(self, root, augment=True, rotate=True, split="train"):
+    def __init__(self, root, augment=True, rotate=True, full_dataset=True, split="train"):
         # root directory 
         self.root = root
         self.split = split
@@ -23,8 +23,12 @@ class ModelNet40Dataset(Dataset):
         self.cat = [line.rstrip() for line in open(self.catfile)]
 
         # training file names 
-        names = np.loadtxt(os.path.join(self.root, \
-            f'modelnet10_{split}.txt'), dtype=np.str)
+        if full_dataset == True:
+            names = np.loadtxt(os.path.join(self.root, \
+                f'modelnet10_{split}.txt'), dtype=np.str)
+        else:
+            names = np.loadtxt(os.path.join(self.root, \
+                f'modelnet10_small_{split}.txt'), dtype=np.str)
 
         # iterate through training files 
         for i, file in enumerate(names):
