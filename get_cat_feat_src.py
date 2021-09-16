@@ -27,8 +27,13 @@ class Get_Cat_Feat_Src(nn.Module):
                 Concatenated local coordinates of src_keypts and normalized src_keyfeats
         '''
         B, K_topk, nsample, num_feat = src_keyfeats.shape
+        print("B: ", B)
+        print("K_topk: ", K_topk)
+        print("nsample: ", nsample)
+        print("num_feat: ", num_feat)
 
         # get distance between k nearest neighbors and the point itself
+        # src_keypts_k: B x K_topk x 3 => B x K_topk x nsample x 3
         src_keypts_k = src_keypts[:, :, :3].unsqueeze(2).repeat(1, 1, nsample, 1)
         pdist = nn.PairwiseDistance(p = 2, keepdim = True)
         src_dist = pdist(torch.flatten(src_keypts_k, start_dim = 0, end_dim = 2), \

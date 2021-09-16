@@ -23,7 +23,7 @@ class feat_embedding_layer(nn.Module):
     def forward(self, X, src = True):
         '''
         If it's src (B x N x K x out_channel), pool along the 3rd dim
-        If it's tgt (B x N x C x K x out_channel), pool along the 4th dim  
+        If it's tgt (B x N x C x K x out_channel), pool along the 4th dim
         '''
         out_channel = 32
         X = X.float()

@@ -71,7 +71,12 @@ def main():
     use_normal = False if dataset == "kitti" else True
 
     # Initialize the model
-    model = DeepVCP(use_normal=use_normal) 
+    model = DeepVCP(use_normal=use_normal)
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model)
+
     model.to(device)
 
     # Retrain
@@ -151,7 +156,7 @@ def main():
             # error metric for rigid body transformation
             r_pred = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
             r_pred_arr = torch.tensor(r_pred.as_euler('xyz', degrees=True)).reshape(1, 3)
-            r_gt = R.from_matrix(R_pred.squeeze(0).cpu().detach().numpy())
+            r_gt = R.from_matrix(R_gt.squeeze(0).cpu().detach().numpy())
             r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
             pdist = nn.PairwiseDistance(p = 2)
             

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import time
 
 from pointnet2_utils import sample_and_group, index_points
 from deep_feat_extraction import feat_extraction_layer
@@ -24,24 +25,36 @@ class DeepVCP(nn.Module):
         B, _, _ = src_pts.shape
 
         # deep features extracted from FE layer: B x N x 32
+        fe_start_time = time.time()
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
+        print("feature extraction time: ", time.time() - fe_start_time)
 
         # obtain the top k indices for src point clouds
         K_topk = 64
+        wl_start_time = time.time()
         src_keypts_idx = self.WL(src_deep_feat_pts)
+        # print("src_keypts_idx: ", src_keypts_idx.shape)
+        # print("src_pts: ", src_pts.shape)
+        # print("weighting layer time: ", time.time() - wl_start_time)
         batch_mask = torch.arange(B)
         batch_mask = batch_mask.unsqueeze(1).repeat(1, B)
         batch_mask = batch_mask.flatten()
 
         # indexing the src_pts to get keypts: B x K_topk x 6
-        src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
+        src_keypts_idx_unsqueezed = (src_keypts_idx.unsqueeze(0)).unsqueeze(1).repeat(1, 6, 1)
+        print("src_keypts_idx_unsqueezed: ", src_keypts_idx_unsqueezed.shape)
+        src_keypts = torch.gather(src_pts, 2, src_keypts_idx_unsqueezed).view(B, K_topk, src_pts.shape[1])
+        print("src_keypts: ", src_keypts.shape)
+        # src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
         
         # group the keypoints 
         # src_keypts_grouped_pts: B x K_topk x nsample x 6
         # picked_idx: B x K_topk x nsample
+        group_start_time = time.time()
         src_keypts_grouped_xyz, src_keypts_grouped_pts, picked_idx = sample_and_group(npoint = 64, radius = 1, nsample = 32, \
                                                                                       xyz = src_keypts[:, :, :3], \
                                                                                       points = None, returnidx = True)
+        print("Grouping keypoints time: ", time.time() - group_start_time)
         
         # pick the deep feature corresponding to src_keypts_grouped
         # src_keyfeats: B x K_topk x nsample x num_feat
@@ -49,8 +62,10 @@ class DeepVCP(nn.Module):
         src_keyfeats = index_points(src_deep_feat_pts, picked_idx)
         
         # normalize src_deep_feat_pts with distance between src point and its k nearest neighbors
+        get_cat_feat_src_start_time = time.time()
         src_gcf = Get_Cat_Feat_Src()
         src_keyfeats_cat = src_gcf(src_keypts, src_keypts_grouped_pts, src_keyfeats)
+        print("get_cat_feat_src time: ", time.time() - get_cat_feat_src_start_time)
 
         tgt_pts_xyz = tgt_pts[:, :3, :]
         tgt_pts_xyz = tgt_pts_xyz.permute(0, 2, 1)
@@ -77,8 +92,10 @@ class DeepVCP(nn.Module):
         candidate_pts = voxelize(src_transformed_T, r, s)
 
         # group the tgt_pts to feed into DFE layer
+        get_cat_feat_tgt_start_time = time.time()
         tgt_gcf = Get_Cat_Feat_Tgt()
         tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        print("get_cat_feat_tgt time: ", time.time() - get_cat_feat_tgt_start_time)
 
         # deep feature embedding
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)

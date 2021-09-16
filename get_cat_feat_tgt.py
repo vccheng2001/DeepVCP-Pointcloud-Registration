@@ -44,7 +44,11 @@ class Get_Cat_Feat_Tgt(nn.Module):
         k_nn = 32
         knn = KNN(k = k_nn, transpose_mode = True)
         query_pts = candidate_pts_flat
-        ref_pts = tgt_pts_xyz.repeat(B, 1, 1)
+        print("tgt_pts_xyz: ", tgt_pts_xyz.shape)
+        # previous
+        # ref_pts = tgt_pts_xyz.repeat(B, 1, 1)
+        ref_pts = tgt_pts_xyz
+        print("ref_pts: ", ref_pts.shape)
         dist, idx = knn(ref_pts.cuda(), query_pts.cuda())
         candidate_pts_k = candidate_pts.unsqueeze(3).repeat(1, 1, 1, nsample, 1)
 
@@ -52,10 +56,14 @@ class Get_Cat_Feat_Tgt(nn.Module):
         # dist_normalize: (B x (K_topk x C) x num_feat)
         dist_sum = torch.sum(dist, dim = 2, keepdim = True, dtype = float)
         dist_normalize = dist / dist_sum
+        print("dist_normalize: ", dist_normalize.shape)
 
         # stacking normalized distance into a map for deep features
         # feat_weight_map: (B x (K_topk x C) x k_nn x num_feat) 
-        feat_weight_map = dist_normalize.unsqueeze(3).repeat(1, 1, 1, k_nn)
+        # previous
+        # feat_weight_map = dist_normalize.unsqueeze(3).repeat(1, 1, 1, k_nn)
+        feat_weight_map = dist_normalize.unsqueeze(2).repeat(1, 1, k_nn, 1)
+        print("feat_weight_map: ", feat_weight_map.shape)
         
         # pick deep features of tgt_pts with idx
         N_keypts = src_keypts.shape[1]
@@ -69,8 +77,11 @@ class Get_Cat_Feat_Tgt(nn.Module):
         # tgt_keyfeats_cat: (B x K_topk x C x k_nn x (3 + num_feat))
         idx_1_mask = torch.arange(B)
         idx_1_mask = idx_1_mask.unsqueeze(1).repeat(1, B)
+        print("idx_1_mask: ", idx_1_mask)
         idx_1_mask = idx_1_mask.flatten()
+        print("idx_1_mask_flatten: ", idx_1_mask)
         idx_2_mask = idx.flatten()
+        print("idx_2_mask: ", idx_2_mask)
         tgt_feat_picked = tgt_deep_feat_pts[idx_1_mask, idx_2_mask, :].view(B, N_keypts, \
                                                                             C_candidates, k_nn, C_deep_feat)
         tgt_pts_picked = tgt_pts_xyz[idx_1_mask, idx_2_mask, :].view(B, N_keypts, \
