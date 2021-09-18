@@ -4,7 +4,7 @@ data/*
 .DS_Store
 py
 data/
-
+.sh*
 *.pt
 
 # Byte-compiled / optimized / DLL files
