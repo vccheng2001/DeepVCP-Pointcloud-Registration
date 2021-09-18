@@ -121,10 +121,17 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnidx=False):
     """
     B, N, C = xyz.shape
     S = npoint
+    # subsampling to <npoint> 
     fps_idx = farthest_point_sample(xyz, npoint) # [B, npoint]
+    # (B, npoints, 3)
     new_xyz = index_points(xyz, fps_idx)
+    # cluster centroids
+    # for each new_xyz pt, find <nsample> nearest neighbors within xyz
+    # (B, npoints, nsample)
     idx = query_ball_point(radius, nsample, xyz, new_xyz)
+    # (B, npoints, nsample, 3)
     grouped_xyz = index_points(xyz, idx)
+    # (B, npoints, nsample, 3) - (B, npoints, 1, 3)
     grouped_xyz_norm = grouped_xyz - new_xyz.view(B, S, 1, C)
 
     if points is not None:
@@ -132,9 +139,12 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnidx=False):
         new_points = torch.cat([grouped_xyz_norm, grouped_points], dim=-1) # [B, npoint, nsample, C+D]
     else:
         new_points = grouped_xyz_norm
+
     if returnidx:
         return new_xyz, new_points, idx
     else:
+        # new xyz is just the subsampled version 
+        # new_xyz=(B, npoints, 3), new_points = (B, npoints, nsample, 6), idx=(B, npoints, nsample)
         return new_xyz, new_points
 
 
@@ -168,9 +178,21 @@ class PointNetSetAbstraction(nn.Module):
         self.mlp_bns = nn.ModuleList()
         last_channel = in_channel
         for out_channel in mlp:
+            # sa1 mlp 6->16, 16->32
+            # bn(16), bn(32)
+
+            # sa2 mlp 6->32,32->64
+            # bn(32), bn(64)
+
+            # sa3 mlp 6->64, 64->64
+            # bn(64, bn(64))
+
+            # conv2d input: (N, Cin, Hin, Win)
+            #        output: (N, Cout, Hout, Wout)
             self.mlp_convs.append(nn.Conv2d(last_channel, out_channel, 1))
             self.mlp_bns.append(nn.BatchNorm2d(out_channel))
             last_channel = out_channel
+
         self.group_all = group_all
 
     def forward(self, xyz, points):
@@ -189,10 +211,14 @@ class PointNetSetAbstraction(nn.Module):
         if self.group_all:
             new_xyz, new_points = sample_and_group_all(xyz, points)
         else:
+
+            # new_xyz=(B, npoints, 3), new_points = (B, npoints, nsample, 6), idx=(B, npoints, nsample)
             new_xyz, new_points = sample_and_group(self.npoint, self.radius, self.nsample, xyz, points)
         # new_xyz: sampled points position data, [B, npoint, C]
-        # new_points: sampled points data, [B, npoint, nsample, C+D]
+        # new_points: sampled points data, [B, npoint, nsample, C+D] clusters
         new_points = new_points.permute(0, 3, 2, 1) # [B, C+D, nsample,npoint]
+        
+        # conv should be C+D -> 1
         for i, conv in enumerate(self.mlp_convs):
             bn = self.mlp_bns[i]
             new_points =  F.relu(bn(conv(new_points.float())))
@@ -238,13 +264,7 @@ class PointNetSetAbstractionMsg(nn.Module):
 
         B, N, C = xyz.shape
         S = self.npoint
-
-        if N == self.npoint:
-            print('Skipping subsampling step')
-            new_xyz = xyz
-        else:
-        
-            new_xyz = index_points(xyz, farthest_point_sample(xyz, S))
+        new_xyz = index_points(xyz, farthest_point_sample(xyz, S))
 
         new_points_list = []
         for i, radius in enumerate(self.radius_list):

@@ -24,10 +24,13 @@ class ModelNet40Dataset(Dataset):
 
         # training file names 
         if full_dataset == True:
+            # print('Using full dataset')
             names = np.loadtxt(os.path.join(self.root, \
                 f'modelnet10_{split}.txt'), dtype=np.str)
-            # names = names[:106] # TEMP
+            names = names[:50] # TEMP
+            # print('names', names)
         else:
+            print('Using partial dataset')
             names = np.loadtxt(os.path.join(self.root, \
                 f'modelnet10_small_{split}.txt'), dtype=np.str)
 

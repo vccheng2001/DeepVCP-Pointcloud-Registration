@@ -29,7 +29,6 @@ class DeepVCP(nn.Module):
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
         print("feature extraction time: ", time.time() - fe_start_time)
 
-        return 0 
         # obtain the top k indices for src point clouds
         K_topk = 64
         wl_start_time = time.time()

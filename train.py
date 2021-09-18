@@ -49,7 +49,7 @@ def main():
 
     # dataset 
     if dataset == "modelnet":
-        root = '/home/vivian_cheng/datasets/modelnet40_normal_resampled/'
+        root = '/home/local/SWNA/chenv022/Projects/datasets/modelnet40_normal_resampled/'
         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
         train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset, split='train')
         test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset,  split='test')
