@@ -110,9 +110,9 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
 def sample_and_group(npoint, radius, nsample, xyz, points, returnidx=False):
     """
     Input:
-        npoint:
-        radius:
-        nsample:
+        npoint: num points after FPS
+        radius: local region search radius
+        nsample: number points per local region
         xyz: input points position data, [B, N, 3]
         points: input points data, [B, N, D]
     Return:
@@ -121,10 +121,10 @@ def sample_and_group(npoint, radius, nsample, xyz, points, returnidx=False):
     """
     B, N, C = xyz.shape
     S = npoint
-    fps_idx = farthest_point_sample(xyz, npoint) # [B, npoint, C]
+    fps_idx = farthest_point_sample(xyz, npoint) # [B, npoint]
     new_xyz = index_points(xyz, fps_idx)
     idx = query_ball_point(radius, nsample, xyz, new_xyz)
-    grouped_xyz = index_points(xyz, idx) # [B, npoint, nsample, C]
+    grouped_xyz = index_points(xyz, idx)
     grouped_xyz_norm = grouped_xyz - new_xyz.view(B, S, 1, C)
 
     if points is not None:
@@ -197,7 +197,9 @@ class PointNetSetAbstraction(nn.Module):
             bn = self.mlp_bns[i]
             new_points =  F.relu(bn(conv(new_points.float())))
 
+        # [B, 3+D, npoint]
         new_points = torch.max(new_points, 2)[0]
+        # [B, 3, npoint]
         new_xyz = new_xyz.permute(0, 2, 1)
         return new_xyz, new_points
 
@@ -236,7 +238,14 @@ class PointNetSetAbstractionMsg(nn.Module):
 
         B, N, C = xyz.shape
         S = self.npoint
-        new_xyz = index_points(xyz, farthest_point_sample(xyz, S))
+
+        if N == self.npoint:
+            print('Skipping subsampling step')
+            new_xyz = xyz
+        else:
+        
+            new_xyz = index_points(xyz, farthest_point_sample(xyz, S))
+
         new_points_list = []
         for i, radius in enumerate(self.radius_list):
             K = self.nsample_list[i]

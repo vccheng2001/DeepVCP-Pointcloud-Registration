@@ -29,6 +29,7 @@ class DeepVCP(nn.Module):
         src_deep_feat_xyz, src_deep_feat_pts = self.FE1(src_pts)
         print("feature extraction time: ", time.time() - fe_start_time)
 
+        return 0 
         # obtain the top k indices for src point clouds
         K_topk = 64
         wl_start_time = time.time()
@@ -94,7 +95,7 @@ class DeepVCP(nn.Module):
         # group the tgt_pts to feed into DFE layer
         get_cat_feat_tgt_start_time = time.time()
         tgt_gcf = Get_Cat_Feat_Tgt()
-        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_transformed_T, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
         print("get_cat_feat_tgt time: ", time.time() - get_cat_feat_tgt_start_time)
 
         # deep feature embedding

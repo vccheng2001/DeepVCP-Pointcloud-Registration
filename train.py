@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 # setup args
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
-parser.add_argument('-f', '--full_dataset', default="full", help='specify to train on full or partial dataset')
+parser.add_argument("-f", "--full_dataset", default=True, help="full dataset", action='store_true')
 parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
 parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
 
@@ -31,7 +31,7 @@ args = parser.parse_args()
 dataset = args.dataset
 retrain_path = args.retrain_path
 model_path = args.model_path
-full_dataset = True if args.full_dataset == "full" else False
+full_dataset = args.full_dataset
 
 def main():
     # hyper-parameters
@@ -49,7 +49,7 @@ def main():
 
     # dataset 
     if dataset == "modelnet":
-        root = '/home/zheruiz/datasets/modelnet40_normal_resampled/'
+        root = '/home/vivian_cheng/datasets/modelnet40_normal_resampled/'
         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
         train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset, split='train')
         test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset,  split='test')

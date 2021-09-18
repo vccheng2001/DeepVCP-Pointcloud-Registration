@@ -26,6 +26,7 @@ class ModelNet40Dataset(Dataset):
         if full_dataset == True:
             names = np.loadtxt(os.path.join(self.root, \
                 f'modelnet10_{split}.txt'), dtype=np.str)
+            # names = names[:106] # TEMP
         else:
             names = np.loadtxt(os.path.join(self.root, \
                 f'modelnet10_small_{split}.txt'), dtype=np.str)

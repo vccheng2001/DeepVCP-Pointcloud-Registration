@@ -4,6 +4,24 @@ import torch
 import numpy as np
 import math 
 
+
+def knn(qry, ref, K, return_ref_pts=True):
+    # qry: B x P x M
+    # ref: B x R x M 
+
+    # B x P x R 
+    D = torch.cdist(qry, ref, p=2)
+    dist, idx = D.topk(k=K, dim=-1, largest=False)
+
+    # for each point in qry, returns the K nearest neighbors 
+    # nn_pts: B, qry_num, K, dims
+    if return_ref_pts:
+        nn_pts = torch.stack([ref[n][i,:] for n, i in enumerate(torch.unbind(idx, dim = 0))], dim = 0) 
+        return dist, idx, nn_pts 
+
+    else:
+        return dist, idx
+
 # rotation about x axis
 def RotX(theta):
     Rx = np.matrix([[ 1,            0           , 0     ],

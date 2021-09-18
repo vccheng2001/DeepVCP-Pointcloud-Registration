@@ -1,6 +1,6 @@
 import torch 
 from torch import nn
-from knn_cuda import KNN
+from utils import knn
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -66,10 +66,8 @@ def svd_optimization(x, y_pred, R_true, t_true):
 
     y_pred1 = torch.matmul(R1, x) + t1       # Bx3xN
 
-    # get 1-nearest neighbor, outlier rejection
-    knn = KNN(k=1, transpose_mode=False)
-    
-    dist, _ = knn(y_pred1, y_true)          # BxKxN
+    # get 1-nearest neighbor, outlier rejection    
+    dist, _ = knn(y_pred1, y_true, k=1)          # BxKxN
     dist = dist.to(device)
 
     # eliminate 20% outliers (keep 80% points with smallest 1-NN distance)

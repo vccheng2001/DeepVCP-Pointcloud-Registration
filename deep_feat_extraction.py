@@ -7,13 +7,26 @@ class feat_extraction_layer(nn.Module):
         super(feat_extraction_layer, self).__init__()
         in_channel = 6 if use_normal else 3
         self.use_normal = use_normal
-        self.sa1 = PointNetSetAbstraction(npoint = 10000, radius = 0.1, nsample = 256, in_channel = in_channel, mlp = [16, 16, 32], group_all = False)
-        self.sa2 = PointNetSetAbstraction(npoint=10000, radius=0.2, nsample=128, in_channel = 32, mlp=[32, 64],
+        self.sa1 = PointNetSetAbstraction(npoint = 10000, # num subsampled pts after FPS
+                                          radius = 0.1,   # search radius in ball
+                                          nsample = 4096, # num points in local region
+                                          in_channel = in_channel, # num in_channels
+                                          mlp = [16, 32], # output size of each MLP layer
+                                          group_all = False)
+        self.sa2 = PointNetSetAbstraction(npoint=10000,
+                                          radius=0.2,
+                                          nsample=1024,
+                                          in_channel = 32,
+                                          mlp=[32, 64],
                                           group_all=False)
-        self.sa3 = PointNetSetAbstraction(npoint=10000, radius=0.4, nsample=64, in_channel=64, mlp=[64, 64],
+        self.sa3 = PointNetSetAbstraction(npoint=10000,
+                                          radius=0.4,
+                                          nsample=256,
+                                          in_channel=64,
+                                          mlp=[64, 64],
                                           group_all=False)
         self.fc = nn.Linear(64, 32)
-        # self.sa2 = PointNetSetAbstraction(npoint = 10000, radius = 0.1, nsample = 8, in_channel = in_channel, mlp = [16, 16, 32], group_all = False)
+        self.dropoout = nn.Dropout(0.3) # keeping prob: 0.7
 
     def forward(self, pts):
         B, _, _, = pts.shape
@@ -23,6 +36,7 @@ class feat_extraction_layer(nn.Module):
         else:
             normal = None
             xyz = pts
+        
         output_xyz, output_pts = self.sa1(xyz, normal)
         output_xyz, output_pts = self.sa2(output_xyz, normal)
         output_xyz, output_pts = self.sa3(output_xyz, normal)
