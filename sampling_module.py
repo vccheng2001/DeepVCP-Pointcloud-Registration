@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from pointnet2_utils import sample_and_group
 
-from knn_cuda import KNN
 
 
 class Get_Cat_Feat_Tgt(nn.Module):

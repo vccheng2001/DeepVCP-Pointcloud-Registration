@@ -20,11 +20,19 @@ class feat_embedding_layer(nn.Module):
         self.fc3 = nn.Linear(32, 32, True)
         self.max_pool = nn.MaxPool1d(kernel_size = self.K_nsample)
     
+
+ 
+
+
+
     def forward(self, X, src = True):
         '''
         If it's src (B x N x K x out_channel), pool along the 3rd dim
+        - output is (B x N x out_channeL
         If it's tgt (B x N x C x K x out_channel), pool along the 4th dim
+        - output is (B x N x C x out_channel)
         '''
+
         out_channel = 32
         X = X.float()
         if src:
@@ -38,10 +46,13 @@ class feat_embedding_layer(nn.Module):
             # pooling: (B x (N x out_channel) x 1)
             # reshape: (B x N x out_channel x 1)
             # squeeze: (B x N x out_channel)
+
+       
             X = X.permute(0, 1, 3, 2)
             X = torch.flatten(X, start_dim = 1, end_dim = 2)
             X = self.max_pool(X)
             X = X.view(B, N, out_channel, 1).squeeze(3)
+      
 
         else:
             B, N, C, K, _ = X.shape

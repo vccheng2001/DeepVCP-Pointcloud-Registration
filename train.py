@@ -44,12 +44,15 @@ def main():
     print(f"Params: epochs: {num_epochs}, batch: {batch_size}, lr: {lr}, alpha: {alpha}\n")
 
     # check if cuda is available
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"device: {device}")
 
     # dataset 
     if dataset == "modelnet":
-        root = '/home/local/SWNA/chenv022/Projects/datasets/modelnet40_normal_resampled/'
+        root = '/home/vivian_cheng/datasets/modelnet40_normal_resampled/'
+
+        # root = '/home/local/SWNA/chenv022/Projects/datasets/modelnet40_normal_resampled/'
         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
         train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset, split='train')
         test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset,  split='test')
@@ -72,10 +75,10 @@ def main():
 
     # Initialize the model
     model = DeepVCP(use_normal=use_normal)
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model)
+    # if torch.cuda.device_count() > 1:
+    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
+    #     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+    #     model = nn.DataParallel(model)
 
     model.to(device)
 
@@ -100,7 +103,7 @@ def main():
         for n_batch, (src, target, R_gt, t_gt, ) in enumerate(train_loader):
             start_time = time.time()
             # mini batch
-            src, target, R_gt, t_gt = src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
+            src, target, R_gt, t_gt = src, target, R_gt, t_gt#src.to(device), target.to(device), R_gt.to(device), t_gt.to(device)
             t_init = torch.zeros(1, 3)
             src_keypts, target_vcp = model(src, target, R_gt, t_init)
             # print('src_keypts shape', src_keypts.shape)

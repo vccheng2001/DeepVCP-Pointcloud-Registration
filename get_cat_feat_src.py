@@ -27,10 +27,10 @@ class Get_Cat_Feat_Src(nn.Module):
                 Concatenated local coordinates of src_keypts and normalized src_keyfeats
         '''
         B, K_topk, nsample, num_feat = src_keyfeats.shape
-        print("B: ", B)
-        print("K_topk: ", K_topk)
-        print("nsample: ", nsample)
-        print("num_feat: ", num_feat)
+        # print("B: ", B)
+        # print("K_topk: ", K_topk)
+        # print("nsample: ", nsample)
+        # print("num_feat: ", num_feat)
 
         # get distance between k nearest neighbors and the point itself
         # src_keypts_k: B x K_topk x 3 => B x K_topk x nsample x 3

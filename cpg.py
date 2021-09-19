@@ -24,6 +24,8 @@ class cpg(nn.Module):
         # softmax 
         self.softmax = nn.Softmax(dim=-1)
      
+    # src_dfe_feat:  # (B, K_topk, 1, 32)
+    # tgt_dfe_feat:  # (B, K_topk, 32, C)
     def forward(self, src_dfe_feat, tgt_dfe_feat, candidates, r, s):
         B, N, C, _ = candidates.shape
         grid_size = int((2*r)/s + 1 )
@@ -57,6 +59,8 @@ class cpg(nn.Module):
         vcp = torch.sum(torch.mul(weights,candidates), -2) # sum over candidates
         vcp /= torch.sum(weights, -2)
         # vcp: B x N x 3
+
+        print('returned vcp from cpg', vcp.shape)
         return vcp
 
 if __name__ == "__main__":

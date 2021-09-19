@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from utils import knn
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 '''
 obtain rotation and translation using single
@@ -66,15 +67,15 @@ def svd_optimization(x, y_pred, R_true, t_true):
 
     y_pred1 = torch.matmul(R1, x) + t1       # Bx3xN
 
-    # get 1-nearest neighbor, outlier rejection    
-    dist, _ = knn(y_pred1, y_true, k=1)          # BxKxN
-    dist = dist.to(device)
+    # for each pt in y_pred1, find 1-NN from y_true
+    # 1,64,3 and 1,64,3 -> knn: B,64,1
+    dist, _ = knn(qry=y_pred1.permute(0,2,1), ref=y_true.permute(0,2,1), K=1, return_ref_pts=False)          # BxKxN
 
     # eliminate 20% outliers (keep 80% points with smallest 1-NN distance)
     num_inliers = int(N*0.8)
-    inliers = torch.topk(dist, k=num_inliers, dim=-1,\
+    inliers = torch.topk(dist.permute(0,2,1), k=num_inliers, dim=-1,\
                      largest=False, sorted=True).indices
-    inliers = inliers.repeat(1,3,1).to(device)
+    inliers = inliers.repeat(1,3,1).to(device) # repeat for x y z
 
     y_pred1 = torch.gather(y_pred1, dim=-1, index = inliers) # Bx3xN'
     x1 = torch.gather(x, dim=-1, index = inliers)            # Bx3xN'

@@ -11,7 +11,8 @@ from get_cat_feat_src import Get_Cat_Feat_Src
 from deep_feat_embedding import feat_embedding_layer
 from cpg import cpg
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
+# device =  'cuda' if torch.cuda.is_available() else 'cpu'
 
 class DeepVCP(nn.Module):
     def __init__(self, use_normal): 
@@ -42,9 +43,9 @@ class DeepVCP(nn.Module):
 
         # indexing the src_pts to get keypts: B x K_topk x 6
         src_keypts_idx_unsqueezed = (src_keypts_idx.unsqueeze(0)).unsqueeze(1).repeat(1, 6, 1)
-        print("src_keypts_idx_unsqueezed: ", src_keypts_idx_unsqueezed.shape)
+        # print("src_keypts_idx_unsqueezed: ", src_keypts_idx_unsqueezed.shape)
         src_keypts = torch.gather(src_pts, 2, src_keypts_idx_unsqueezed).view(B, K_topk, src_pts.shape[1])
-        print("src_keypts: ", src_keypts.shape)
+        # print("src_keypts: ", src_keypts.shape)
         # src_keypts = src_pts[batch_mask, :, src_keypts_idx].view(B, K_topk, src_pts.shape[1])
         
         # group the keypoints 
@@ -65,6 +66,7 @@ class DeepVCP(nn.Module):
         get_cat_feat_src_start_time = time.time()
         src_gcf = Get_Cat_Feat_Src()
         src_keyfeats_cat = src_gcf(src_keypts, src_keypts_grouped_pts, src_keyfeats)
+        # print('src_keyfeats_cat', src_keyfeats_cat.shape)
         print("get_cat_feat_src time: ", time.time() - get_cat_feat_src_start_time)
 
         tgt_pts_xyz = tgt_pts[:, :3, :]
@@ -73,8 +75,10 @@ class DeepVCP(nn.Module):
 
         # rotate and translate the src_keypts with R_init and t_init
         # get candidate points by voxelization
-        r = 1.0
+        r = 2.0
         s = 0.4
+
+        # there should be (2*2/0.4 + 1, 2*2/0.4 2*2/0.4) = 16x16x16 = 216 candidates
 
         # t_init: (1 x 3)
         # R_init: (1 x 3 x 3)
@@ -94,16 +98,21 @@ class DeepVCP(nn.Module):
         # group the tgt_pts to feed into DFE layer
         get_cat_feat_tgt_start_time = time.time()
         tgt_gcf = Get_Cat_Feat_Tgt()
-        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_transformed_T, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        # print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
+
         print("get_cat_feat_tgt time: ", time.time() - get_cat_feat_tgt_start_time)
 
         # deep feature embedding
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
         tgt_dfe_feat = self.DFE(tgt_keyfeats_cat, src = False)
 
+        print('src_dfe_feat', src_dfe_feat.shape) # (B, K_topk, 32)
+        print('tgt_dfe_feat', tgt_dfe_feat.shape) # (B, K_topk, C, 32)
+        
         # similarity learning
-        src_dfe_feat = src_dfe_feat.unsqueeze(2)
-        tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2)
+        src_dfe_feat = src_dfe_feat.unsqueeze(2) # (B, K_topk, 1, 32)
+        tgt_dfe_feat = tgt_dfe_feat.permute(0, 1, 3, 2) # (B, K_topk, 32, C)
         
         tgt_vcp = self.cpg(src_dfe_feat, tgt_dfe_feat, candidate_pts, r, s)
 

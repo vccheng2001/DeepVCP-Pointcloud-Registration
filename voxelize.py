@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import random
 import time
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 ''' Calls voxelize_point on each point
     @param xp: batch of transformed point clouds 

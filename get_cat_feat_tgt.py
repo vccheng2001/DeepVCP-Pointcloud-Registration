@@ -16,12 +16,11 @@ class Get_Cat_Feat_Tgt(nn.Module):
         super(Get_Cat_Feat_Tgt, self).__init__()
 
 # dfe should get B x K_topK x C x 32 for target, then get input into 3D CNN
-    def forward(self, candidate_pts, transformed_keypts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts):
+    def forward(self, candidate_pts,  src_keypts, tgt_pts_xyz, tgt_deep_feat_pts):
         """
         Input:
             candidate_pts: candidate corresponding points (B x K_topk x C x 3)
                 for each transformed keypt, get C candidates 
-            transformed_keypts: (B x K_topk x 3)
             src_keypts: keypoints in src point cloud (B x K_topk x 3)
             tgt_pts_xyz: original points in target point cloud (B x N2 x 3)
             tgt_deep_feat_pts: deep features for tgt point cloud (B x N2 x num_feats)
@@ -31,6 +30,11 @@ class Get_Cat_Feat_Tgt(nn.Module):
                               normalized deep features (B x K_topk x C x nsample x (3 + num_feats))
         """
         B, K_topk, C, _ = candidate_pts.shape
+        # print('B:', B)
+        # print('K_topk:',K_topk)
+        # print("C: ", C)
+        B, N2, _ = tgt_pts_xyz.shape
+        # print('N2:', N2)
 
         # extract DFE descriptors for target pts
         
@@ -39,28 +43,52 @@ class Get_Cat_Feat_Tgt(nn.Module):
             certain radius d of each keypoint, duplicate if < K
         '''
 
-        D_radius = 1 # 1 meter search radius
+        D_radius = 2 # 1 meter search radius
         K_knn = 32 
+        # print('K_knn:', K_knn)
 
         candidate_pts_flat = torch.flatten(candidate_pts, start_dim = 1, end_dim = 2) # (B x (K_topk x C) x 3)
 
-        # Search among all candidates for each transformed keypoint's nearest neighbors 
-        # nn_idx: (B x K_topk x K_knn)
+                
+        # Search among all original N2 target points for each candidate's nearest neighbors 
+        # nn_idx: (B x (K_topk x C) x K_knn)
         nn_idx = query_ball_point(radius=D_radius,
                                     nsample=K_knn, 
-                                    xyz=candidate_pts_flat.float(),        # ref: (B x (K_topk x C) x 3)
-                                    new_xyz=transformed_keypts.float())    # query: (B x K_topk x 3)
+                                    xyz=tgt_pts_xyz.float(),             # (B x N2 x 3) 
+                                    new_xyz=candidate_pts_flat.float())  # (B x (K_topk x C) x 3)
 
-        # Get neighbors by indexing into candidates, then normalize to 
-        # use local candidates: (B x K_topk x K_knn x 3)
-        nn_pts = index_points(candidate_pts_flat, nn_idx) 
-        nn_pts = nn_pts / D_radius
+        
+        # Index into tgt_pts_xyz   
+        # (B x K_topk x C x K_knn x 3)
+        nn_idx_xyz = nn_idx.reshape(B, K_topk, C, K_knn).unsqueeze(-1).repeat(1,1,1,1,3)
+        # print('nn_idx_xyz', nn_idx_xyz.shape)
+        # [1, 64, 216, 32, 3])
 
-        # Concatenate with FE feature + LiDAR reflectance intensities
-        # as input to DFE layer
+        # (B x N2 x C x K_knn x 3 )
+        tgt_pts_xyz = tgt_pts_xyz.unsqueeze(-2).unsqueeze(-2).repeat(1,1,C, K_knn,1)
+        # print('tgt_pts_xyz', tgt_pts_xyz.shape)
+
+        # [1, 10000, 216, 32, 3])
+        # (B x K_topk x C x K_knn x 3)
+        nn_candidate_pts = torch.gather(tgt_pts_xyz, dim=1, index=nn_idx_xyz)
+        nn_candidate_pts_norm = nn_candidate_pts / D_radius
 
 
+        # Index into tgt_deep_feat_pts
+        nn_idx_deep_feat_pts = nn_idx.reshape(B, K_topk, C, K_knn).unsqueeze(-1).repeat(1,1,1,1,32)
+        # (B x N2 x C x K_knn x num_feats)
+        tgt_deep_feat_pts = tgt_deep_feat_pts.unsqueeze(-2).unsqueeze(-2).repeat(1,1,C,K_knn, 1)
+        nn_tgt_deep_feat_pts = torch.gather(tgt_deep_feat_pts, dim=1, index=nn_idx_deep_feat_pts)
 
+        
+
+
+        # (B x K_topk x C x K_knn x 35)
+        tgt_keyfeats_cat = torch.cat((nn_candidate_pts_norm, nn_tgt_deep_feat_pts), dim = 4)
+
+        print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
+
+        return tgt_keyfeats_cat
 
 
 
