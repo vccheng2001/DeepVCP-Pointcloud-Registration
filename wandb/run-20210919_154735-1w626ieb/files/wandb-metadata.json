@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.4.0-42-generic-x86_64-with-glibc2.27",
+    "python": "3.9.6",
+    "heartbeatAt": "2021-09-19T19:47:36.369692",
+    "startedAt": "2021-09-19T19:47:35.357363",
+    "docker": null,
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "gpu_count": 4,
+    "cpu_count": 40,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/vivian_cheng/pointcloud/train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/vccheng2001/pointcloud.git",
+        "commit": "fc89d1304e6f6c292a2132e95d23f8a84dd17dae"
+    },
+    "email": "vccheng@andrew.cmu.edu",
+    "root": "/home/vivian_cheng/pointcloud",
+    "host": "GPUSERVER",
+    "username": "vivian_cheng",
+    "executable": "/home/vivian_cheng/anaconda3/envs/pytorch_env/bin/python3"
+}

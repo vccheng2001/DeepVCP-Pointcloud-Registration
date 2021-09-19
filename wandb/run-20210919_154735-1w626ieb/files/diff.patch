@@ -1,0 +1,194 @@
+diff --git a/train.py b/train.py
+index c5ccf37..022fa23 100644
+--- a/train.py
++++ b/train.py
+@@ -11,6 +11,7 @@ import pickle
+ import argparse 
+ from utils import *
+ 
++import wandb
+ from deepVCP import DeepVCP
+ from ModelNet40Dataset import ModelNet40Dataset
+ from KITTIDataset import KITTIDataset
+@@ -20,43 +21,49 @@ import matplotlib
+ matplotlib.use('Agg')
+ from matplotlib import pyplot as plt
+ 
+-# setup args
+-parser = argparse.ArgumentParser()
+-parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
+-parser.add_argument("-f", "--full_dataset", default=True, help="full dataset", action='store_true')
+-parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
+-parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
+ 
+-args = parser.parse_args()
+-dataset = args.dataset
+-retrain_path = args.retrain_path
+-model_path = args.model_path
+-full_dataset = args.full_dataset
++def main(cfg):
++
++    if cfg.logger:
++        # start a new wandb run for experiment tracking
++        tags = [cfg.dataset]
++        wandb.init(project='deepvcp',
++                entity='vccheng2001',
++                config=cfg,
++                tags=tags)
++        wandb.run.name = f'{cfg.dataset}'
++
++
++
+ 
+-def main():
+     # hyper-parameters
+-    num_epochs = 10
+-    batch_size = 1
+-    lr = 0.001
+-    # loss balancing factor 
+-    alpha = 0.5
++    num_epochs = cfg.num_epochs
++    batch_size = cfg.batch_size
++    lr = cfg.learning_rate
++    alpha = cfg.alpha
+ 
+-    print(f"Params: epochs: {num_epochs}, batch: {batch_size}, lr: {lr}, alpha: {alpha}\n")
++    print(f"Params: {cfg}")
+ 
+     # check if cuda is available
+     device = 'cpu'
+     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+     print(f"device: {device}")
+ 
++    # Use multiple GPUs
++    # if torch.cuda.device_count() > 1:
++    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
++    #     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
++    #     model = nn.DataParallel(model)
++
+     # dataset 
+-    if dataset == "modelnet":
++    if cfg.dataset == "modelnet":
+         root = '/home/vivian_cheng/datasets/modelnet40_normal_resampled/'
+ 
+         # root = '/home/local/SWNA/chenv022/Projects/datasets/modelnet40_normal_resampled/'
+         shape_names = np.loadtxt(root+"modelnet10_shape_names.txt", dtype="str")
+-        train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset, split='train')
+-        test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=full_dataset,  split='test')
+-    elif dataset == "kitti":
++        train_data= ModelNet40Dataset(root=root, augment=True, full_dataset=cfg.full_dataset, split='train')
++        test_data = ModelNet40Dataset(root=root, augment=True, full_dataset=cfg.full_dataset,  split='test')
++    elif cfg.dataset == "kitti":
+         root = '/data/dataset/'
+         train_data= KITTIDataset(root=root, N=10000, augment=True, split="train")
+         test_data = KITTIDataset(root=root, N=10000, augment=True, split="test")
+@@ -75,24 +82,23 @@ def main():
+ 
+     # Initialize the model
+     model = DeepVCP(use_normal=use_normal)
+-    # if torch.cuda.device_count() > 1:
+-    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
+-    #     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+-    #     model = nn.DataParallel(model)
+-
+     model.to(device)
+ 
++    if cfg.logger:
++        # Log gradients and model parameters
++        wandb.watch(model)
++
+     # Retrain
+     if retrain_path:
+-        print("Retrain on ", retrain_path)
+-        model.load_state_dict(torch.load(retrain_path))
++        print("Retrain on ", cfg.retrain_path)
++        model.load_state_dict(torch.load(cfg.retrain_path))
+     else:
+         print("No retrain")
+ 
+     # Define the optimizer
+     optim = Adam(model.parameters(), lr=lr)
+ 
+-    # begin train 
++    # Begin training
+     model.train()
+     loss_epoch_avg = []
+     for epoch in range(num_epochs):
+@@ -119,8 +125,17 @@ def main():
+             r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
+             pdist = nn.PairwiseDistance(p = 2)
+             
+-            print("rotation error: ", pdist(r_pred_arr, r_gt_arr).item())
+-            print("translation error: ", pdist(t_pred, t_gt).item())
++
++            train_rotation_error = pdist(r_pred_arr, r_gt_arr).item()
++            train_translation_error = pdist(t_pred, t_gt).item()
++            print("rotation error: ", train_rotation_error)
++            print("translation error: ", train_translation_error)
++
++            if cfg.logger:
++
++                wandb.log({"train/rotation_error": train_rotation_error})
++                wandb.log({"train/translation_error": train_translation_error})
++                wandb.log({"train/loss": loss.item()})
+ 
+             # backward pass
+             loss.backward()
+@@ -133,7 +148,11 @@ def main():
+             if (n_batch + 1) % 5 == 0:
+                 print("Epoch: [{}/{}], Batch: {}, Loss: {}".format(
+                     epoch, num_epochs, n_batch, loss.item()))
++
++                
+                 running_loss = 0.0
++
++            
+         
+         torch.save(model.state_dict(), "epoch_" + str(epoch) + "_model.pt")
+         loss_epoch_avg += [sum(loss_epoch) / len(loss_epoch)]
+@@ -143,7 +162,7 @@ def main():
+ 
+     # save 
+     print("Finished Training")
+-    torch.save(model.state_dict(), model_path)
++    torch.save(model.state_dict(), cfg.model_path)
+     
+     # begin test 
+     model.eval()
+@@ -163,8 +182,15 @@ def main():
+             r_gt_arr = torch.tensor(r_gt.as_euler('xyz', degrees=True)).reshape(1, 3)
+             pdist = nn.PairwiseDistance(p = 2)
+             
+-            print("rotation error test: ", pdist(r_pred_arr, r_gt_arr).item())
+-            print("translation error test: ", pdist(t_pred, t_gt).item())
++            test_rotation_error = pdist(r_pred_arr, r_gt_arr).item()
++            test_translation_error = pdist(t_pred, t_gt).item()
++            print("rotation error test: ", test_rotation_error)
++            print("translation error test: ", test_translation_error)
++
++            if cfg.logger:
++                wandb.log({"test/loss": loss.item()})
++                wandb.log({"test/rotation_error":test_rotation_error})
++                wandb.log({"test/translation_error":test_translation_error})
+ 
+             loss_test += [loss.item()]
+ 
+@@ -173,4 +199,17 @@ def main():
+     print("Test loss:", loss)
+ 
+ if __name__ == "__main__":
+-    main()
++
++    parser = argparse.ArgumentParser()
++    parser.add_argument('-d', '--dataset', default="modelnet", help='dataset (specify modelnet or kitti)')
++    parser.add_argument("-f", "--full_dataset", default=True, help="full dataset", action='store_true')
++    parser.add_argument("-l", "--logger", default=True, help="use logger", action='store_true')
++    parser.add_argument('-r', '--retrain_path', action = "store", type = str, help='specify a saved model to retrain on')
++    parser.add_argument('-m', '--model_path', default="final_model.pt", action = "store", type = str, help='specify path to save final model')
++    parser.add_argument('-ep', '--num_epochs', default=10, type = int, help='num epochs to train')
++    parser.add_argument('-bs', '--batch_size', default=1, type = int, help='batch size')
++    parser.add_argument('-lr', '--learning_rate', default=0.001, type = float, help='learning rate')
++    parser.add_argument('-a', '--alpha', default=0.5,  type = float, help='loss balancing factor')
++    cfg = parser.parse_args()
++
++    main(cfg)
