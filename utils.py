@@ -8,8 +8,8 @@ import math
 def knn(qry, ref, K, return_ref_pts=True):
     # qry: B x P x M
     # ref: B x R x M 
-    print('q', qry.shape)
-    print('ref', ref.shape)
+    # print('q', qry.shape)
+    # print('ref', ref.shape)
 
     # D: B x P x R 
     D = torch.cdist(qry, ref, p=2)

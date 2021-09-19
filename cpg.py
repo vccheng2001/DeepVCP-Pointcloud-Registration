@@ -60,7 +60,7 @@ class cpg(nn.Module):
         vcp /= torch.sum(weights, -2)
         # vcp: B x N x 3
 
-        print('returned vcp from cpg', vcp.shape)
+        # print('returned vcp from cpg', vcp.shape)
         return vcp
 
 if __name__ == "__main__":

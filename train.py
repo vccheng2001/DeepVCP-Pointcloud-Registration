@@ -49,11 +49,6 @@ def main(cfg):
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"device: {device}")
 
-    # Use multiple GPUs
-    # if torch.cuda.device_count() > 1:
-    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
-    #     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-    #     model = nn.DataParallel(model)
 
     # dataset 
     if cfg.dataset == "modelnet":
@@ -82,6 +77,13 @@ def main(cfg):
 
     # Initialize the model
     model = DeepVCP(use_normal=use_normal)
+
+    # Use multiple GPUs
+    # if torch.cuda.device_count() > 1:
+    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
+    #     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+    #     model = nn.DataParallel(model)
+
     model.to(device)
 
     if cfg.logger:
@@ -89,7 +91,7 @@ def main(cfg):
         wandb.watch(model)
 
     # Retrain
-    if retrain_path:
+    if cfg.retrain_path:
         print("Retrain on ", cfg.retrain_path)
         model.load_state_dict(torch.load(cfg.retrain_path))
     else:

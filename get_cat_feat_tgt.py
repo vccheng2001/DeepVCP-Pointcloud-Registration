@@ -86,7 +86,7 @@ class Get_Cat_Feat_Tgt(nn.Module):
         # (B x K_topk x C x K_knn x 35)
         tgt_keyfeats_cat = torch.cat((nn_candidate_pts_norm, nn_tgt_deep_feat_pts), dim = 4)
 
-        print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
+        # print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
 
         return tgt_keyfeats_cat
 

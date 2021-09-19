@@ -3,7 +3,8 @@ from ModelNet40Dataset import ModelNet40Dataset
 from torch.utils.data import DataLoader
 
 def main():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     model = torch.load("epoch_0_model.pt")
 

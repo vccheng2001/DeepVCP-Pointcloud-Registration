@@ -107,8 +107,8 @@ class DeepVCP(nn.Module):
         src_dfe_feat = self.DFE(src_keyfeats_cat, src = True)
         tgt_dfe_feat = self.DFE(tgt_keyfeats_cat, src = False)
 
-        print('src_dfe_feat', src_dfe_feat.shape) # (B, K_topk, 32)
-        print('tgt_dfe_feat', tgt_dfe_feat.shape) # (B, K_topk, C, 32)
+        # print('src_dfe_feat', src_dfe_feat.shape) # (B, K_topk, 32)
+        # print('tgt_dfe_feat', tgt_dfe_feat.shape) # (B, K_topk, C, 32)
         
         # similarity learning
         src_dfe_feat = src_dfe_feat.unsqueeze(2) # (B, K_topk, 1, 32)

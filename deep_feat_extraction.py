@@ -11,22 +11,22 @@ class feat_extraction_layer(nn.Module):
         self.use_normal = use_normal
         self.sa1 = PointNetSetAbstraction(npoint = 10000, # num subsampled pts after FPS
                                           radius = 0.1,   # search radius in ball
-                                          # nsample = 4096, # num points in local region
-                                          nsample=1024,
+                                          nsample = 2048, # num points in local region
+                                          # nsample=64,
                                           in_channel = in_channel, # num in_channels
                                           mlp = [32,32,64], # output size of each MLP layer
                                           group_all = False)
         self.sa2 = PointNetSetAbstraction(npoint=10000,
                                           radius=0.2,
-                                          # nsample=1024,
-                                          nsample=512,
+                                          nsample=1024,
+                                          # nsample=32,
                                           in_channel = 67,
                                           mlp=[64,64],
                                           group_all=False)
         self.sa3 = PointNetSetAbstraction(npoint=10000,
                                           radius=0.4,
-                                          # nsample=256,
-                                          nsample=256,
+                                          nsample=512,
+                                          # nsample=32,
                                           in_channel=67,
                                           mlp=[32,32],
                                           group_all=False)
