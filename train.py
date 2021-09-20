@@ -26,12 +26,11 @@ def main(cfg):
 
     if cfg.logger:
         # start a new wandb run for experiment tracking
-        tags = [cfg.dataset]
+        tags = [cfg.dataset, 'localized_get_tgt_feat']
         wandb.init(project='deepvcp',
                 entity='vccheng2001',
                 config=cfg,
                 tags=tags)
-        wandb.run.name = f'{cfg.dataset}'
 
 
 

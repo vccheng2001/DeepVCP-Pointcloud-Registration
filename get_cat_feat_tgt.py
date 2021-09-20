@@ -16,11 +16,12 @@ class Get_Cat_Feat_Tgt(nn.Module):
         super(Get_Cat_Feat_Tgt, self).__init__()
 
 # dfe should get B x K_topK x C x 32 for target, then get input into 3D CNN
-    def forward(self, candidate_pts,  src_keypts, tgt_pts_xyz, tgt_deep_feat_pts):
+    def forward(self, candidate_pts, src_transformed_T,  src_keypts, tgt_pts_xyz, tgt_deep_feat_pts):
         """
         Input:
             candidate_pts: candidate corresponding points (B x K_topk x C x 3)
                 for each transformed keypt, get C candidates 
+            src_transformed_T: (B x K_topk x 3) transformed source keypts using guess 
             src_keypts: keypoints in src point cloud (B x K_topk x 3)
             tgt_pts_xyz: original points in target point cloud (B x N2 x 3)
             tgt_deep_feat_pts: deep features for tgt point cloud (B x N2 x num_feats)
@@ -61,18 +62,16 @@ class Get_Cat_Feat_Tgt(nn.Module):
         # Index into tgt_pts_xyz   
         # (B x K_topk x C x K_knn x 3)
         nn_idx_xyz = nn_idx.reshape(B, K_topk, C, K_knn).unsqueeze(-1).repeat(1,1,1,1,3)
-        # print('nn_idx_xyz', nn_idx_xyz.shape)
-        # [1, 64, 216, 32, 3])
-
         # (B x N2 x C x K_knn x 3 )
         tgt_pts_xyz = tgt_pts_xyz.unsqueeze(-2).unsqueeze(-2).repeat(1,1,C, K_knn,1)
-        # print('tgt_pts_xyz', tgt_pts_xyz.shape)
 
-        # [1, 10000, 216, 32, 3])
         # (B x K_topk x C x K_knn x 3)
         nn_candidate_pts = torch.gather(tgt_pts_xyz, dim=1, index=nn_idx_xyz)
-        nn_candidate_pts_norm = nn_candidate_pts / D_radius
-
+        # should be local, which means each <K_topk> keypoint is the origin
+        # (B x K_topk x C x K_knn x 3) - (B x K_topk C x K_knn x 3)
+        nn_candidate_pts_local = nn_candidate_pts - src_transformed_T.unsqueeze(-2).unsqueeze(-2).repeat(1,1,C, K_knn,1)
+        # normalize by search radius 
+        nn_candidate_pts_norm = nn_candidate_pts_local / D_radius
 
         # Index into tgt_deep_feat_pts
         nn_idx_deep_feat_pts = nn_idx.reshape(B, K_topk, C, K_knn).unsqueeze(-1).repeat(1,1,1,1,32)
@@ -80,24 +79,13 @@ class Get_Cat_Feat_Tgt(nn.Module):
         tgt_deep_feat_pts = tgt_deep_feat_pts.unsqueeze(-2).unsqueeze(-2).repeat(1,1,C,K_knn, 1)
         nn_tgt_deep_feat_pts = torch.gather(tgt_deep_feat_pts, dim=1, index=nn_idx_deep_feat_pts)
 
-        
+        # normalize FE extracted features
+        nn_tgt_deep_feat_pts_norm = nn_tgt_deep_feat_pts / D_radius
 
-
-        # (B x K_topk x C x K_knn x 35)
-        tgt_keyfeats_cat = torch.cat((nn_candidate_pts_norm, nn_tgt_deep_feat_pts), dim = 4)
-
-        # print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
+        # concat
+        tgt_keyfeats_cat = torch.cat((nn_candidate_pts_norm, nn_tgt_deep_feat_pts_norm), dim = 4)
 
         return tgt_keyfeats_cat
-
-
-
-
-
-
-
-
-        
         # # sample and group the candidate points
         # # candidate_pts_grouped_xyz: B x K_topk x C x nsample x 3
         # nsample = 32

@@ -98,7 +98,7 @@ class DeepVCP(nn.Module):
         # group the tgt_pts to feed into DFE layer
         get_cat_feat_tgt_start_time = time.time()
         tgt_gcf = Get_Cat_Feat_Tgt()
-        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
+        tgt_keyfeats_cat = tgt_gcf(candidate_pts, src_transformed_T, src_keypts, tgt_pts_xyz, tgt_deep_feat_pts)
         # print('tgt_keyfeats_cat', tgt_keyfeats_cat.shape)
 
         print("get_cat_feat_tgt time: ", time.time() - get_cat_feat_tgt_start_time)
